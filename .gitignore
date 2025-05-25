@@ -1,4 +1,4 @@
-gitignore
+.gitignore
 # Byte-compiled files
 __pycache__/
 *.pyc
@@ -32,3 +32,8 @@ Thumbs.db
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+google-cloud-sdk/
+*.gz
+.env
+*.txt
