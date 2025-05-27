@@ -10,6 +10,7 @@ venv/
 .venv/
 env/
 .env/
+t1d_swarm/subagents/simulated_cgm_feed_agent/.env/
 
 # Distribution / packaging
 dist/
