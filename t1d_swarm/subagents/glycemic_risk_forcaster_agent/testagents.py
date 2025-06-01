@@ -71,6 +71,8 @@ async def test_glycemic_agent_with_mock_state(
         "context_event": mock_context_event,
         # Add any other state your agent might expect initially
     }
+
+  
     session = await session_service.create_session(
         app_name=APP_NAME,
         user_id=USER_ID,
