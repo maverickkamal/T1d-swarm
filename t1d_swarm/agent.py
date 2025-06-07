@@ -4,7 +4,7 @@ from google.adk.agents import SequentialAgent
 from google.adk.agents.callback_context import CallbackContext
 
 from .subagents.ambient_context_simulator_agent.agent import AmbientContextSimulatorAgent
-from .subagents.glycemic_risk_forcaster_agent.agent import GlycemicRiskForecasterAgent
+from .subagents.refinement_loop_agent.agent import RefinementLoopAgent
 from .subagents.simulated_cgm_feed_agent.agent import SimulatedCGMFeedAgent
 from .subagents.insight_presenter_agent.agent import InsightPresenterAgent
 from .tools import generate_scenario
@@ -23,7 +23,7 @@ t1d_swarm = SequentialAgent(
     sub_agents=[
         AmbientContextSimulatorAgent,
         SimulatedCGMFeedAgent,
-        GlycemicRiskForecasterAgent,
+        RefinementLoopAgent,
         InsightPresenterAgent
     ],
     before_agent_callback=setup_before_agent_call
