@@ -20,7 +20,7 @@ instruction_for_agent = FORECAST_VERIFIER_PROMPT.format(
 schema_string=SCHEMA_JSON_STRING
 )
 
-forecast_verifier_agent = LlmAgent(
+ForecastVerifierAgent = LlmAgent(
     model=MODEL_NAME,
     name="ForecastVerifierAgent",
     description="Verifies verification risk forecasts based on grounding data.",
