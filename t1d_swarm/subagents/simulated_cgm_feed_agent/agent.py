@@ -1,7 +1,6 @@
 import json
 
 from google.adk.agents import LlmAgent
-# from google.genai import types
 from dotenv import load_dotenv
 
 from .prompts import SIMULATED_CGM_FEED_PROMPT, CGMDataOutput
