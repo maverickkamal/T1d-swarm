@@ -21,8 +21,8 @@ t1d_swarm = SequentialAgent(
     name='T1dInsightOrchestratorAgent',
     description='Orchestrates the flow of data and tasks between specialized sub-agents',
     sub_agents=[
-        AmbientContextSimulatorAgent,
         SimulatedCGMFeedAgent,
+        AmbientContextSimulatorAgent,
         RefinementLoopAgent,
         InsightPresenterAgent
     ],
