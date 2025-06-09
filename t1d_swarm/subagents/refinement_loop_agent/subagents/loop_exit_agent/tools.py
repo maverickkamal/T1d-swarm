@@ -53,37 +53,3 @@ def extract_json_from_llm_output(raw_output: str) -> Optional[Dict[str, Any]]:
         print(json_string)
         print("--------------------------")
         return None
-
-# --- Example Usage (How to integrate this into your code) ---
-
-# This simulates the raw output you received from the ForecastVerifierAgent
-# raw_verifier_output = """
-# {
-#   "original_forecast_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-#   "verification_confidence": 0.95,
-#   "verification_summary": "The forecast is highly consistent...",
-#   "feedback_for_forecaster": null
-# }
-# """
-
-# In your ConfidenceChecker or orchestrator, you would do this:
-if __name__ == "__main__":
-    print("--- Running Robust JSON Extraction Test ---")
-
-    # This is how you use the function
-    verification_data = extract_json_from_llm_output(raw_verifier_output)
-
-    if verification_data:
-        print("Successfully parsed JSON:")
-        print(verification_data)
-        print(f"Type: {type(verification_data)}")
-
-        # Now your confidence check will work correctly
-        confidence = verification_data.get('verification_confidence', 0.0)
-        print(f"\nExtracted confidence score: {confidence}")
-        if confidence >= 0.8:
-            print("Confidence is >= 0.8. Loop should terminate.")
-        else:
-            print("Confidence is < 0.8. Loop should continue.")
-    else:
-        print("\nFailed to parse JSON from the raw output.")

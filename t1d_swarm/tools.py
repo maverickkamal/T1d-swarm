@@ -10,7 +10,6 @@ from .prompt import *
 
 load_dotenv()
 
-# client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 
 client = genai.Client(http_options=HttpOptions(api_version="v1"))
 

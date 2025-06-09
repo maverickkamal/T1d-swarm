@@ -3,23 +3,6 @@ from typing import List, Optional
 from datetime import datetime
 import json
 
-class ModelOutput(BaseModel):
-    glucose_value: int = Field(0, alias='glucose_value', description='The glucose reading of a patient by the CGM')
-    trend_arrow: str = Field("...", alias='trend_arrow', description="An arrow showing how quickly the patients glucose is rising,"
-                                                                     "return 'DoubleUp' to indicate patients glucose is rising rapidly,"
-                                                                     "return 'SingleUp' to indicate patients glucose is rising,"
-                                                                     "return 'FortyFiveUp' to indicate patients glucose is rising slowly,"
-                                                                     "return 'Flat' to indicate patients glucose is constant,"
-                                                                     "return 'FortyFiveDown' to indicate patients glucose is falling slowly,"
-                                                                     "return 'SingleDown' to indicate patients glucose is falling,"
-                                                                     "return 'DoubleDown' to indicate patients glucose is falling rapidly,"
-                                                                     "return 'NOT_COMPUTABLE' to indicate the CGM has no reading of patients glucose,"
-                                                                     "return 'Error' to indicate issues with CGM reading")
-    unit: str = Field("mg/dL", alias='unit', description='The unit of the glucose reading')
-    data_quality_issues: str = Field("None", alias='problems', description="Indicates whether the cgm is experiencing issues regarding reading data")
-    timestamp: datetime = Field(datetime.utcnow(), alias='timestamp', description='The date and time the glucose reading was taken')
-
-
 # --- Pydantic Schema for CGMDataOutput ---
 # This is what the Simulated_CGM_Feed_Agent will output.
 
@@ -88,26 +71,3 @@ Expected `data_quality_issues` for example: "Sensor failure, no readings availab
 
 Generate the JSON output now.
 """
-
-# Example Usage (for testing or demonstration of the schema):
-# if __name__ == "__main__":
-#     example_cgm_data_rising = CGMDataOutput(
-#         glucose_value=180,
-#         trend_arrow="SingleUp",
-#         data_quality_issues=None
-#         # unit and timestamp_simulated will use defaults
-#     )
-#     print("Example CGM Data Output (Rising):")
-#     print(example_cgm_data_rising.model_dump_json(indent=2))
-
-#     example_cgm_data_error = CGMDataOutput(
-#         glucose_value=None,
-#         trend_arrow="NOT_COMPUTABLE",
-#         data_quality_issues="Sensor signal lost."
-#     )
-#     print("\nExample CGM Data Output (Sensor Error):")
-#     print(example_cgm_data_error.model_dump_json(indent=2))
-
-    # To see the prompt (you'd need to simulate state['current_cgm_scenario'] for a full view)
-    # print("\n--- SIMULATED_CGM_FEED_PROMPT_TEMPLATE (schema part) ---")
-    # print(SIMULATED_CGM_FEED_PROMPT_TEMPLATE)

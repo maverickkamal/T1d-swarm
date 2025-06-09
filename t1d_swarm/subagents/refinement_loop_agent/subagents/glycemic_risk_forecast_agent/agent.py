@@ -13,12 +13,6 @@ MODEL_NAME = "gemini-2.5-pro-preview-05-06"
 
 # --- Configure Llm Agent --- 
 
-# SCHEMA_JSON_STRING = json.dumps(RiskForecastOutput.model_json_schema(), indent=2)
-
-# instruction_for_agent = RISK_FORECASTER_PROMPT.format(
-# schema_string=SCHEMA_JSON_STRING
-# )
-
 GlycemicRiskForecasterAgent = LlmAgent(
     model=MODEL_NAME,
     name="GlycemicRiskForecasterAgent",

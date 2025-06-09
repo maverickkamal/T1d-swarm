@@ -1,6 +1,0 @@
-GOOGLE_GENAI_USE_VERTEXAI=FALSE
-GOOGLE_API_KEY=api-key 
-
-# now add your api key, I deleted the one in that folder to not expose your key.
-# Next time keep it in the root folder 
-
