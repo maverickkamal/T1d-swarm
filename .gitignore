@@ -9,6 +9,44 @@ __pycache__/
 venv/
 .venv/
 env/
+.env
+
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor-specific files
+.idx/
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+google-cloud-sdk/
+*.tar.gz
+.gitignore
+# Byte-compiled files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
 .env/
 
 # Distribution / packaging
@@ -32,3 +70,8 @@ Thumbs.db
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+google-cloud-sdk/
+*.gz
+.env
+*.txt
