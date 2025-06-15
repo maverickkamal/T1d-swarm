@@ -691,3 +691,97 @@ button {
   line-height: 24px;
   letter-spacing: 0.1px;
 }
+
+// Modern expandable animations
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.details-header:hover {
+  background-color: #353535 !important;
+}
+
+.metric-card:hover {
+  border-color: #555 !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.factor-card:hover {
+  border-color: #555 !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.risk-details-container {
+  transition: all 0.3s ease;
+}
+
+.focus-item:hover {
+  .focus-item div:last-child {
+    color: #f1f3f4 !important;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.response-container {
+  // Scrollbar styling for webkit browsers
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #555;
+    }
+  }
+}
+
+.details-toggle {
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+  }
+}
+
+.section {
+  h2, h3 {
+    margin: 0;
+  }
+}
+
+.detailed-response {
+  .factor-item:last-child {
+    border-bottom: none;
+  }
+}
+
+// Smooth transitions for dynamic content
+.main-response, .detailed-response {
+  transition: opacity 0.3s ease-out;
+}

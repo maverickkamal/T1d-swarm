@@ -26,6 +26,7 @@ import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import {ActivatedRoute, NavigationEnd, Router} from '@angular/router';
 import {instance} from '@viz-js/viz';
 import {BehaviorSubject, catchError, combineLatest, distinctUntilChanged, filter, map, Observable, of, shareReplay, switchMap, take, tap} from 'rxjs';
+import {HttpClient} from '@angular/common/http';
 
 import {URLUtil} from '../../../utils/url-util';
 import {AgentRunRequest} from '../../core/models/AgentRunRequest';
@@ -114,6 +115,7 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   artifacts: any[] = [];
   userInput: string = '';
   userEditEvalCaseMessage: string = '';
+  selectedDropdownOption: string = '';
   userId = 'user';
   appName = '';
   sessionId = ``;
@@ -201,6 +203,12 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   // Trace tab 
   traceTabEnabled = true;
 
+  isGenerating = false;
+  scenarioCompleted = false;
+  scenarioResponse: any = null;
+  showRiskDetails = false;
+  showTechnicalDetails = false;
+
   constructor(
       private sanitizer: DomSanitizer,
       private sessionService: SessionService,
@@ -213,6 +221,7 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
       private route: ActivatedRoute,
       private downloadService: DownloadService,
       private evalService: EvalService,
+      private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -299,11 +308,21 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   createSession() {
+    // Only create backend session if we're not in scenario mode
+    if (this.scenarioCompleted || this.selectedDropdownOption) {
+      // For scenarios, just generate a local session ID
+      this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
+      return;
+    }
+    
+    // Original session creation logic for chat mode
     this.sessionService.createSession(this.userId, this.appName)
         .subscribe((res) => {
           this.currentSessionState = res.state;
           this.sessionId = res.id;
-          this.sessionTab.refreshSession();
+          if (this.sessionTab) {
+            this.sessionTab.refreshSession();
+          }
         });
   }
 
@@ -368,15 +387,21 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
       error: (err) => console.error('SSE error:', err),
       complete: () => {
         this.streamingTextMessage = null;
-        this.sessionTab.reloadSession(this.sessionId);
-        this.eventService.getTrace(this.sessionId)
-            .pipe(catchError((error) => {
-              if (error.status === 404) {
-                return of(null);
-              }
-              return of([]);
-            }))
-            .subscribe(res => {this.traceData = res})
+        // Only reload session if not in scenario mode
+        if (!this.scenarioCompleted && !this.selectedDropdownOption && this.sessionTab) {
+          this.sessionTab.reloadSession(this.sessionId);
+        }
+        // Only get trace if not in scenario mode
+        if (!this.scenarioCompleted && !this.selectedDropdownOption) {
+          this.eventService.getTrace(this.sessionId)
+              .pipe(catchError((error) => {
+                if (error.status === 404) {
+                  return of(null);
+                }
+                return of([]);
+              }))
+              .subscribe(res => {this.traceData = res})
+        }
       },
     });
     // Clear input
@@ -1107,14 +1132,21 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onNewSessionClick() {
-    this.createSession();
+    // Only create backend session if not in scenario mode
+    if (!this.scenarioCompleted && !this.selectedDropdownOption) {
+      this.createSession();
+    } else {
+      // For scenario mode, just generate a new local session ID
+      this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
+    }
+    
     this.eventData.clear();
     this.eventMessageIndexArray = [];
     this.messages = [];
     this.artifacts = [];
 
     // Close eval history if opened
-    if (!!this.evalTab.showEvalHistory) {
+    if (this.evalTab && !!this.evalTab.showEvalHistory) {
       this.evalTab.toggleEvalHistoryButton();
     }
   }
@@ -1140,7 +1172,172 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     this.useSse = !this.useSse;
   }
 
+  onDropdownChange(event: any) {
+    this.isGenerating = true;
+    this.selectedDropdownOption = event.value;
+    this.scenarioResponse = null;
+    
+    // Generate a simple session ID for the scenario request if not exists
+    if (!this.sessionId) {
+      this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    // Create the request in the correct format
+    const request = {
+      appName: this.appName,
+      userId: this.userId,
+      sessionId: this.sessionId,
+      newMessage: {
+        parts: [
+          {
+            text: event.value
+          }
+        ],
+        role: "user"
+      },
+      streaming: false
+    };
+    
+    // Call the backend endpoint
+    this.http.post('http://localhost:8000/run', request).subscribe({
+      next: (response: any) => {
+        console.log('Scenario generation completed:', response);
+        this.processScenarioResponse(response);
+        this.isGenerating = false;
+        this.scenarioCompleted = true;
+      },
+      error: (error) => {
+        console.error('Error generating scenario:', error);
+        this.isGenerating = false;
+        // Show error to user
+        this._snackBar.open('Error generating scenario. Please try again.', 'Close', {
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  processScenarioResponse(response: any) {
+    console.log('Full response:', response);
+    
+    let finalText = '';
+    let riskForecastData = null;
+    let debugResponses: any[] = [];
+
+    // Check if response is an array or has parts array
+    let responseParts = [];
+    if (Array.isArray(response)) {
+      responseParts = response;
+    } else if (response.parts && Array.isArray(response.parts)) {
+      responseParts = response.parts;
+    } else {
+      // Single response object
+      responseParts = [response];
+    }
+
+    // Process each part and look for GlycemicRiskForecasterAgent
+    responseParts.forEach((part: any, index: number) => {
+      let extractedText = '';
+      let partData = { ...part };
+
+      // Extract text from different possible structures
+      if (part.content && part.content.parts && part.content.parts[0] && part.content.parts[0].text) {
+        extractedText = part.content.parts[0].text;
+      } else if (part.text) {
+        extractedText = part.text;
+      } else if (part.content && part.content.text) {
+        extractedText = part.content.text;
+      }
+
+      // Check if this is the GlycemicRiskForecasterAgent
+      if (part.author === 'GlycemicRiskForecasterAgent' && extractedText) {
+        try {
+          const parsedJson = JSON.parse(extractedText);
+          riskForecastData = this.parseRiskForecast(parsedJson);
+        } catch (e) {
+          console.warn('Failed to parse GlycemicRiskForecasterAgent JSON:', e);
+        }
+      }
+
+      // Create debug entry with metadata (excluding technical IDs)
+      const debugEntry = {
+        index: index,
+        author: part.author || 'Unknown Agent',
+        extractedText: extractedText,
+        fullData: partData,
+        hasText: !!extractedText
+      };
+
+      debugResponses.push(debugEntry);
+    });
+
+    // Find the final response (actionable_micro_insight_candidate or last meaningful text)
+    let finalResponse = null;
+    if (riskForecastData && (riskForecastData as any).actionable_micro_insight) {
+      finalText = (riskForecastData as any).actionable_micro_insight;
+    } else {
+      // Fallback to last meaningful response
+      for (let i = debugResponses.length - 1; i >= 0; i--) {
+        if (debugResponses[i].extractedText && debugResponses[i].extractedText.trim().length > 0) {
+          finalResponse = debugResponses[i];
+          finalText = finalResponse.extractedText;
+          break;
+        }
+      }
+    }
+
+    this.scenarioResponse = {
+      finalText: finalText,
+      riskForecast: riskForecastData,
+      debugResponses: debugResponses.length > 0 ? debugResponses : null
+    };
+  }
+
+  parseRiskForecast(jsonData: any): any {
+    try {
+      return {
+        // Short-term outlook
+        riskLevel: jsonData.short_term_outlook?.overall_risk_level || 'Unknown',
+        primaryConcern: jsonData.short_term_outlook?.primary_concern || 'Not specified',
+        timeHorizon: jsonData.short_term_outlook?.time_horizon_hours || 0,
+        narrative: jsonData.short_term_outlook?.narrative_summary || '',
+        confidence: jsonData.short_term_outlook?.confidence_score || 0,
+        
+        // Contributing factors (user-friendly)
+        contributingFactors: jsonData.contributing_factors?.map((factor: any) => ({
+          type: factor.factor_type,
+          description: factor.detail,
+          impact: factor.impact_on_forecast
+        })) || [],
+        
+        // Suggested focus areas
+        focusAreas: jsonData.suggested_focus_areas_qualitative || [],
+        
+        // Main actionable insight
+        actionable_micro_insight: jsonData.actionable_micro_insight_candidate || ''
+      };
+    } catch (e) {
+      console.error('Error parsing risk forecast:', e);
+      return null;
+    }
+  }
+
+  startNewSession() {
+    this.scenarioCompleted = false;
+    this.scenarioResponse = null;
+    this.selectedDropdownOption = '';
+    this.showRiskDetails = false;
+    this.showTechnicalDetails = false;
+    // Generate a new session ID for scenarios without calling backend
+    this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
+  }
+
   selectEvent(key: string) {
+    // Skip event selection in scenario mode to avoid 404 errors
+    if (this.scenarioCompleted || this.selectedDropdownOption) {
+      return;
+    }
+    
     this.selectedEvent = this.eventData.get(key);
     this.selectedEventIndex = this.getIndexOfKeyInMap(key);
     this.eventService.getEventTrace(this.selectedEvent.id).subscribe((res) => {
@@ -1326,5 +1523,83 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
           this.downloadService.downloadObjectAsJson(
               res, `session-${this.sessionId}.json`);
         });
+  }
+
+  isJsonString(str: string): boolean {
+    try {
+      JSON.parse(str);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  formatJson(jsonString: string): string {
+    try {
+      const parsed = JSON.parse(jsonString);
+      return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      return jsonString;
+    }
+  }
+
+  onDebugPanelOpened(debugResponse: any) {
+    console.log('Opened debug panel for:', debugResponse.author, debugResponse);
+  }
+
+  toggleRiskDetails(): void {
+    this.showRiskDetails = !this.showRiskDetails;
+  }
+
+  toggleTechnicalDetails(): void {
+    this.showTechnicalDetails = !this.showTechnicalDetails;
+  }
+
+  formatKey(key: string): string {
+    if (!key) return '';
+    
+    // Handle snake_case and camelCase conversion
+    return key
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+      .trim();
+  }
+
+  formatTechnicalJson(data: any): string {
+    // Create a formatted version with readable keys
+    const formatted = this.transformKeysForDisplay(data);
+    return JSON.stringify(formatted, null, 2);
+  }
+
+  private transformKeysForDisplay(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.transformKeysForDisplay(item));
+    }
+    
+    if (obj && typeof obj === 'object') {
+      const transformed: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        const formattedKey = this.formatKey(key);
+        transformed[formattedKey] = this.transformKeysForDisplay(value);
+      }
+      return transformed;
+    }
+    
+    return obj;
+  }
+
+  getRiskLevelColor(riskLevel: string): string {
+    switch (riskLevel?.toLowerCase()) {
+      case 'high':
+        return '#ff5722';
+      case 'medium':
+      case 'moderate':
+        return '#ff9800';
+      case 'low':
+        return '#4caf50';
+      default:
+        return '#9aa0a6';
+    }
   }
 }

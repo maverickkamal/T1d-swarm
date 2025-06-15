@@ -186,15 +186,7 @@
             <div class="toolbar-session-id">{{sessionId}}</div>
           </div>
           <div class="toolbar-actions">
-            <div class="toolbar-sse-toggle">
-              <mat-slide-toggle
-                class="example-margin"
-                [checked]="enableSseIndicator()"
-                (change)="toggleSse()">
-                Token Streaming
-              </mat-slide-toggle>
-            </div>
-            <mat-divider [vertical]="true" style="margin-left: 8px; margin-right: 8px; height: 22px"></mat-divider>
+
             <div style="display: flex; align-items:center">
               <div (click)="onNewSessionClick()" class="toolbar-new-sesison">
                 <mat-icon>add</mat-icon>
@@ -249,270 +241,161 @@
           <mat-icon>priority_high</mat-icon>
         </button>
       }
-      @if (appName != '') {
-        <div #autoScroll class="chat-messages">
-          <div #videoContainer></div>
-          @for (message of messages; track message; let i = $index) {
-            <div
-              [ngClass]="{'user-message': message.role === 'user', 'bot-message': message.role === 'bot'}"
-              >
-              @if (message.role === 'bot') {
-                <button mat-mini-fab (click)="clickEvent(i)" [matTooltip]="selectedAppControl.value">
-                  <mat-icon fontSet="material-symbols-outlined">robot_2</mat-icon>
+
+      @if (appName != '' && isChatMode()) {
+        <div class="scenario-interface" style="display: flex; flex-direction: column; align-items: center; padding: 20px; max-width: 800px; margin: 0 auto;">
+          
+          <!-- Scenario Dropdown -->
+          <div class="scenario-dropdown" style="margin-bottom: 30px;">
+            @if (!scenarioCompleted) {
+              <mat-form-field class="input-field" appearance="outline" style="width: 300px;">
+                <mat-label>Select a Scenario</mat-label>
+                <mat-select [(value)]="selectedDropdownOption" (selectionChange)="onDropdownChange($event)" [disabled]="isGenerating">
+                  <mat-option value="scenario1">Scenario 1</mat-option>
+                  <mat-option value="scenario2">Scenario 2</mat-option>
+                  <mat-option value="scenario3">Scenario 3</mat-option>
+                  <mat-option value="scenario4">Scenario 4</mat-option>
+                </mat-select>
+              </mat-form-field>
+            } @else {
+              <div class="completed-scenario" style="color: #9aa0a6; font-size: 16px; text-align: center;">
+                Completed: {{selectedDropdownOption}}
+                <button mat-button (click)="startNewSession()" style="margin-left: 10px; color: #8ab4f8;">
+                  New Session
                 </button>
-              }
-              <mat-card class="message-card" [ngClass]="{'eval-fail': message.evalStatus === 2}">
-                @if (message.isLoading) {
-                  <mat-progress-bar class="loading-bar" mode="buffer"></mat-progress-bar>
-                }
-                @if (message.attachments) {
-                  <div class="attachments">
-                    @for (file of message.attachments; track file) {
-                      <div class="attachment">
-                        @if (file.file.type.startsWith('image/')) {
-                          <img [src]="file.url" alt="attachment" class="image-preview-chat">
-                        }
-                        @if (!file.file.type.startsWith('image/')) {
-                          <mat-icon>insert_drive_file</mat-icon>
-                          <a [href]="file.url" download>{{ file.file.name }}</a>
-                        }
                       </div>
                     }
                   </div>
-                }
-                <div>
-                  @if (message.thought) {
-                    <div class="thought-chip">Thought</div>
+
+          <!-- Loading State -->
+          @if (isGenerating) {
+            <div class="generating-container" style="text-align: center; margin-bottom: 30px;">
+              <div style="margin-bottom: 16px; color: white;">Generating scenario: {{selectedDropdownOption}}</div>
+              <mat-spinner diameter="40"></mat-spinner>
+                    </div>
                   }
-                  <div>
-                    @if (message.text) {
-                      @if (message.isEditing) {
-                        <div class="edit-message-container">
-                          <textarea #messageTextarea class="message-textarea"
-                            [(ngModel)]="userEditEvalCaseMessage"
-                            rows="4"
-                            cols="80"
-                            (keydown)="handleKeydown($event, message)"></textarea>
-                          <div class="edit-message-buttons-container">
-                            <span class="material-symbols-outlined"
-                              matTooltip="Cancel editing"
-                              style="width: 24px;height: 24px;color: #C4C7C5;cursor: pointer; margin-right: 16px;"
-                              (click)="cancelEditMessage(message)">
-                              close
-                            </span>
-                            <span class="material-symbols-outlined"
-                              matTooltip="Save eval case message"
-                              style="width: 24px;height: 24px;color:rgb(97, 151, 202);cursor: pointer; margin-right: 16px;"
-                              (click)="saveEditMessage(message)">
-                              check
-                            </span>
+
+          <!-- Response Display -->
+          @if (scenarioResponse && !isGenerating) {
+            <div class="response-container" style="width: 100%; max-width: none; padding: 20px; max-height: 70vh; overflow-y: auto;">
+              
+              <!-- Details Toggle Control -->
+              @if (scenarioResponse.riskForecast) {
+                <div class="details-toggle" 
+                     style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; cursor: pointer; padding: 12px 0; border-bottom: 1px solid #333;"
+                     (click)="toggleRiskDetails()">
+                  <div style="width: 8px; height: 8px; border-radius: 50%;" [style.background-color]="getRiskLevelColor(scenarioResponse.riskForecast.riskLevel)"></div>
+                  <span style="color: #e8eaed; font-size: 16px; font-weight: 500;">
+                    {{showRiskDetails ? 'Hide Details' : 'See Details'}}
+                  </span>
+                  <div class="risk-badge" 
+                       style="padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;"
+                       [style.background-color]="getRiskLevelColor(scenarioResponse.riskForecast.riskLevel) + '20'"
+                       [style.color]="getRiskLevelColor(scenarioResponse.riskForecast.riskLevel)">
+                    {{scenarioResponse.riskForecast.riskLevel}} Risk
+                  </div>
+                  <mat-icon style="color: #9aa0a6; margin-left: auto; transition: transform 0.3s;" [style.transform]="showRiskDetails ? 'rotate(180deg)' : 'rotate(0deg)'">
+                    keyboard_arrow_down
+                  </mat-icon>
+                </div>
+              }
+
+              <!-- Main Response Content -->
+              @if (!showRiskDetails) {
+                <div class="main-response" style="color: #e8eaed; font-size: 18px; line-height: 1.6; font-weight: 400;">
+                  <markdown [data]="scenarioResponse.finalText"></markdown>
+                </div>
+              }
+
+              <!-- Detailed Response Content -->
+              @if (showRiskDetails && scenarioResponse.riskForecast) {
+                <div class="detailed-response" style="animation: fadeIn 0.4s ease-out;">
+                  
+                  <!-- Risk Overview -->
+                  <div class="section" style="margin-bottom: 32px;">
+                    <h2 style="color: #8ab4f8; font-size: 20px; font-weight: 600; margin-bottom: 16px; border-bottom: 2px solid #8ab4f8; padding-bottom: 8px;">Risk Overview</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                      <div>
+                        <div style="color: #9aa0a6; font-size: 14px; margin-bottom: 4px;">Risk Level</div>
+                        <div style="font-size: 16px; font-weight: 600;" [style.color]="getRiskLevelColor(scenarioResponse.riskForecast.riskLevel)">{{formatKey(scenarioResponse.riskForecast.riskLevel)}}</div>
+                      </div>
+                      <div>
+                        <div style="color: #9aa0a6; font-size: 14px; margin-bottom: 4px;">Primary Concern</div>
+                        <div style="color: #e8eaed; font-size: 16px; font-weight: 500;">{{formatKey(scenarioResponse.riskForecast.primaryConcern)}}</div>
+                      </div>
+                      <div>
+                        <div style="color: #9aa0a6; font-size: 14px; margin-bottom: 4px;">Time Horizon</div>
+                        <div style="color: #e8eaed; font-size: 16px; font-weight: 500;">{{scenarioResponse.riskForecast.timeHorizon}} hours</div>
+                      </div>
+                      <div>
+                        <div style="color: #9aa0a6; font-size: 14px; margin-bottom: 4px;">Confidence</div>
+                        <div style="color: #8ab4f8; font-size: 16px; font-weight: 600;">{{(scenarioResponse.riskForecast.confidence * 100).toFixed(0)}}%</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Summary -->
+                  @if (scenarioResponse.riskForecast.narrative) {
+                    <div class="section" style="margin-bottom: 32px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 12px;">Summary</h3>
+                      <div style="color: #e8eaed; font-size: 16px; line-height: 1.6; padding-left: 16px; border-left: 3px solid #8ab4f8;">
+                        <markdown [data]="scenarioResponse.riskForecast.narrative"></markdown>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Contributing Factors -->
+                  @if (scenarioResponse.riskForecast.contributingFactors && scenarioResponse.riskForecast.contributingFactors.length > 0) {
+                    <div class="section" style="margin-bottom: 32px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 16px;">Contributing Factors</h3>
+                      @for (factor of scenarioResponse.riskForecast.contributingFactors; track $index) {
+                        <div class="factor-item" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #333;">
+                          <h4 style="color: #f1f3f4; font-size: 16px; font-weight: 600; margin-bottom: 8px;">{{formatKey(factor.type)}}</h4>
+                          <div style="color: #e8eaed; font-size: 15px; line-height: 1.5; margin-bottom: 8px;">
+                            <markdown [data]="factor.description"></markdown>
+                          </div>
+                          <div style="color: #9aa0a6; font-size: 14px; font-style: italic;">
+                            <strong>Impact:</strong> {{factor.impact}}
                           </div>
                         </div>
-                      } @else {
-                        <markdown
-                          class="message-text"
-                          [data]="message.text"
-                          [ngStyle]="{'font-style':message.thought?'italic':'normal',
-                            'color': message.thought ? '#9aa0a6': 'white'
-                          }"
-                        ></markdown>
                       }
+                    </div>
+                  }
+
+                  <!-- Recommended Focus Areas -->
+                  @if (scenarioResponse.riskForecast.focusAreas && scenarioResponse.riskForecast.focusAreas.length > 0) {
+                    <div class="section" style="margin-bottom: 32px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 16px;">Recommended Actions</h3>
+                      @for (area of scenarioResponse.riskForecast.focusAreas; track $index) {
+                        <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+                          <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #8ab4f8; margin-top: 8px; margin-right: 16px; flex-shrink: 0;"></div>
+                          <div style="color: #e8eaed; font-size: 15px; line-height: 1.5;">
+                            <markdown [data]="area"></markdown>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Technical Details (Collapsible JSON) -->
+                  <div class="section">
+                    <div style="display: flex; align-items: center; cursor: pointer; margin-bottom: 12px;" (click)="toggleTechnicalDetails()">
+                      <h3 style="color: #9aa0a6; font-size: 16px; font-weight: 500; margin: 0;">Technical Details</h3>
+                      <mat-icon style="color: #9aa0a6; margin-left: 8px; transition: transform 0.3s;" [style.transform]="showTechnicalDetails ? 'rotate(180deg)' : 'rotate(0deg)'">
+                        keyboard_arrow_down
+                      </mat-icon>
+                    </div>
+                    @if (showTechnicalDetails) {
+                      <div style="background-color: #1a1a1a; border-radius: 8px; padding: 16px; border: 1px solid #333; font-family: 'Courier New', monospace;">
+                        <pre style="color: #e8eaed; font-size: 12px; white-space: pre-wrap; margin: 0; line-height: 1.4;">{{formatTechnicalJson(scenarioResponse.riskForecast)}}</pre>
+                      </div>
                     }
                   </div>
-                  @if (message.renderedContent) {
-                    <div>
-                      <div [innerHTML]="renderGooglerSearch(message.renderedContent)"></div>
-                    </div>
-                  }
+
                 </div>
-                @if (message.executableCode) {
-                  <code>
-                    {{message.executableCode.code}}
-                  </code>
-                }
-                @if (message.codeExecutionResult) {
-                  <div>
-                    <div>Outcome: {{message.codeExecutionResult.outcome}}</div>
-                    <div>Output: {{message.codeExecutionResult.output}}</div>
-                  </div>
-                }
-                @if (message.inlineData) {
-                  @if (message.role === 'bot') {
-                    <div>
-                      <div>
-                        @switch (message.inlineData.mediaType) {
-                          @case (MediaType.IMAGE) {
-                            <div class="generated-image-container">
-                              <img class="generated-image" alt="image" [src]="message.inlineData.data"
-                              (click)="openViewImageDialog(message.inlineData.data)"/>
-                            </div>
-                          }
-                          @case (MediaType.AUDIO) {
-                            <div>
-                              <app-audio-player [base64data]="message.inlineData.data"></app-audio-player>
-                            </div>
-                          }
-                          @case (MediaType.TEXT) {
-                            <div>
-                              <div class="html-artifact-container">
-                                <mat-icon>description</mat-icon>
-                                <button
-                                  class="link-style-button"
-                                  (click)=" openBase64InNewTab(message.inlineData.data, message.inlineData.mimeType)"
-                                  >
-                                  {{ message.inlineData.name }}
-                                </button>
-                              </div>
-                            </div>
-                          }
-                          @default {
-                            <div>
-                              <button
-                                class="link-style-button"
-                                (click)="openBase64InNewTab(message.inlineData.data, message.inlineData.mimeType)"
-                                >
-                                {{ message.inlineData.name }}
-                              </button>
-                            </div>
-                          }
-                        }
-                      </div>
-                    </div>
-                  } @else {
-                    <div>
-                      @if (message.inlineData.mimeType.startsWith('image/')) {
-                        <div>
-                          <img class="image-preview-chat" alt="image" [src]="message.inlineData.data"
-                            (click)="openViewImageDialog(message.inlineData.data)"/>
-                        </div>
-                      } @else {
-                        <div>
-                          <mat-icon>insert_drive_file</mat-icon>
-                          <a [href]="message.inlineData.data" download>{{ message.inlineData.displayName }}</a>
-                        </div>
-                      }
-                    </div>
-                  }
-                }
-                @if (message.functionCall) {
-                  <button
-                    mat-stroked-button
-                    class="function-event-button"
-                    (click)="clickEvent(i)"
-                    >
-                    <mat-icon>bolt</mat-icon>
-                    {{ message.functionCall.name }}
-                  </button>
-                }
-                @if (message.functionResponse) {
-                  <button
-                    mat-stroked-button
-                    class="function-event-button"
-                    (click)="clickEvent(i)"
-                    >
-                    <mat-icon>check</mat-icon>
-                    {{ message.functionResponse.name }}
-                  </button>
-                }
-                @if (message.actualInvocationToolUses && message.evalStatus === 2) {
-                  <div class="tool-uses-container">
-                    <div class="actual-tool-uses">
-                      <div class="tool-uses-header">Actual tool uses:</div>
-                      <ngx-json-viewer [json]="message.actualInvocationToolUses"></ngx-json-viewer>
-                    </div>
-                    <div class="expected-tool-uses">
-                      <div class="tool-uses-header">Expected tool uses:</div>
-                      <ngx-json-viewer [json]="message.expectedInvocationToolUses"></ngx-json-viewer>
-                    </div>
-                  </div>
-                }
-              </mat-card>
-              <div [ngClass]="{'eval-pass': message.evalStatus === 1, 'eval-fail': message.evalStatus === 2}">
-                <span class="material-symbols-outlined">{{ message.evalStatus === 1 ? 'check' : message.evalStatus === 2 ? 'close' : '' }}</span>
-                <span>{{ message.evalStatus === 1 ? 'Pass' : message.evalStatus === 2 ? 'Fail' : '' }}</span>
-              </div>
-              @if (evalCase && message.role === 'bot' && message.text) {
-                <div>
-                  <span
-                    class="material-symbols-outlined eval-case-edit-button"
-                    [ngClass]="{'hidden': isEvalCaseEditing()}"
-                    matTooltip="Edit eval case message"
-                    (click)="editEvalCase(message)">edit
-                  </span>
-                  <span
-                    class="material-symbols-outlined eval-case-edit-button"
-                    [ngClass]="{'hidden': isEvalCaseEditing()}"
-                    matTooltip="Delete eval case message"
-                    (click)="deleteEvalCaseMessage(message, i)">
-                    delete
-                  </span>
-                </div>
-              }
-              @if (message.role === 'user') {
-                <button mat-mini-fab>
-                  <mat-icon>person</mat-icon>
-                </button>
               }
             </div>
           }
-        </div>
-      }
-      @if (appName != '' && isChatMode()) {
-        <div class="chat-input">
-          <input type="file" multiple hidden (change)="onFileSelect($event)" #fileInput>
-          <mat-form-field class="input-field" appearance="outline">
-            @if (selectedFiles.length && appName != '') {
-              <div class="file-preview">
-                @for (file of selectedFiles; track file; let i = $index) {
-                  <div>
-                    @if (file.file.type.startsWith('image/')) {
-                      <div class="image-container">
-                        <img [src]="file.url" alt="preview" class="image-preview">
-                        <button mat-icon-button (click)="removeFile(i)" class="delete-button">
-                          <mat-icon color="warn">close</mat-icon>
-                        </button>
-                      </div>
-                    }
-                    @if (!file.file.type.startsWith('image/')) {
-                      <div class="file-container">
-                        <button mat-icon-button (click)="removeFile(i)" class="delete-button">
-                          <mat-icon color="warn">close</mat-icon>
-                        </button>
-                        <div class="file-info">
-                          <mat-icon>insert_drive_file</mat-icon>
-                          <span>{{ file.file.name }}</span>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            }
-            <textarea
-              class="chat-input-box"
-              matInput
-              cdkTextareaAutosize
-              cdkAutosizeMinRows="1"
-              cdkAutosizeMaxRows="10"
-              [(ngModel)]="userInput"
-              (keydown.enter)="sendMessage($event)"
-              placeholder="Type a Message..."
-              style="caret-color: white;"
-            ></textarea>
-            <div class="chat-input-actions">
-              <button mat-icon-button (click)="fileInput.click()" class="function-event-button" matTooltip="Upload local file">
-                <mat-icon>attach_file</mat-icon>
-              </button>
-              <div>
-                <button  mat-icon-button matSuffix (click)="toggleAudioRecording()" [ngStyle]="{'background-color': isAudioRecording? 'rgb(234, 67, 53)': 'rgb(51, 53, 55)'}" [matTooltip]="isAudioRecording ? 'Turn off microphone' : 'Use microphone'">
-                  <mat-icon>mic</mat-icon>
-                </button>
-                <button  mat-icon-button matSuffix (click)="toggleVideoRecording()" [ngStyle]="{'background-color': isVideoRecording? 'rgb(234, 67, 53)': 'rgb(51, 53, 55)'}" [matTooltip]="isVideoRecording ? 'Turn off camera' : 'Use camera'">
-                  <mat-icon>videocam</mat-icon>
-                </button>
-              </div>
-            </div>
-          </mat-form-field>
         </div>
       }
     </mat-card>
