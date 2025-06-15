@@ -785,3 +785,49 @@ button {
 .main-response, .detailed-response {
   transition: opacity 0.3s ease-out;
 }
+
+// Google Search grounding content styling
+.grounding-content {
+  .search-suggestions {
+    // Style for multiple search suggestion links
+    :deep(a) {
+      color: #8ab4f8;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        color: #aecbfa;
+        border-bottom-color: #8ab4f8;
+      }
+    }
+    
+    // Style for suggestion items
+    :deep(div), :deep(p) {
+      margin-bottom: 8px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    
+    // Style for suggestion titles
+    :deep(strong), :deep(b) {
+      color: #f1f3f4;
+      font-weight: 600;
+    }
+    
+    // Style for suggestion descriptions
+    :deep(span) {
+      color: #9aa0a6;
+    }
+  }
+}
+
+// Verifier and details toggle hover effects
+.details-toggle, .verifier-toggle {
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+  }
+}

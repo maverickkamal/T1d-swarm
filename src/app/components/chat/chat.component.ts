@@ -208,6 +208,7 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   scenarioResponse: any = null;
   showRiskDetails = false;
   showTechnicalDetails = false;
+  showVerifierDetails = false;
 
   constructor(
       private sanitizer: DomSanitizer,
@@ -1222,6 +1223,8 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     
     let finalText = '';
     let riskForecastData = null;
+    let verifierData: any = null;
+    let groundingContent = null;
     let debugResponses: any[] = [];
 
     // Check if response is an array or has parts array
@@ -1235,7 +1238,7 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
       responseParts = [response];
     }
 
-    // Process each part and look for GlycemicRiskForecasterAgent
+    // Process each part and look for different agents and grounding content
     responseParts.forEach((part: any, index: number) => {
       let extractedText = '';
       let partData = { ...part };
@@ -1249,6 +1252,12 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
         extractedText = part.content.text;
       }
 
+      // Check for Google Search grounding content (required by policy)
+      if (part.groundingMetadata?.searchEntryPoint?.renderedContent) {
+        groundingContent = part.groundingMetadata.searchEntryPoint.renderedContent;
+        console.log('Found Google Search grounding content:', groundingContent);
+      }
+
       // Check if this is the GlycemicRiskForecasterAgent
       if (part.author === 'GlycemicRiskForecasterAgent' && extractedText) {
         try {
@@ -1259,13 +1268,54 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
 
-      // Create debug entry with metadata (excluding technical IDs)
+      // Check if this is the Agent Verifier - more robust logic
+      const isVerifierAuthor = (part.author && part.author.toLowerCase().includes('verifier')) || (part.author === 'AgentVerifier');
+      const hasVerifierKeywords = extractedText && (
+        extractedText.includes('"verification_confidence"') ||
+        extractedText.includes('"verification_summary"') ||
+        extractedText.includes('"original_forecast_id"') ||
+        extractedText.includes('"feedback_for_forecaster"')
+      );
+
+      if (isVerifierAuthor || hasVerifierKeywords) {
+        console.log('--- Verifier Detection Triggered ---');
+        console.log('Author:', part.author);
+        console.log('Raw Verifier Text:', extractedText);
+
+        let jsonString = extractedText;
+        // Attempt to clean the string if it's wrapped in markdown, which can break JSON.parse()
+        const jsonMatch = extractedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          jsonString = jsonMatch[1];
+          console.log('Extracted JSON from markdown block:', jsonString);
+        }
+
+        try {
+          const parsedJson = JSON.parse(jsonString);
+          verifierData = this.parseVerifierResponse(parsedJson);
+          console.log('SUCCESS: Parsed verifier data:', verifierData);
+        } catch (e) {
+          console.error('FAILURE: Could not parse verifier JSON. The text will be displayed as is.', { error: e, text: jsonString });
+          // Fallback to text if parsing fails, so user at least sees the data.
+          if (!verifierData) { // Don't overwrite if a previous part was already parsed
+            verifierData = {
+              type: 'text_verification',
+              content: extractedText,
+              author: part.author || 'Verifier Agent',
+              confidence: this.extractConfidenceFromText(extractedText)
+            };
+          }
+        }
+      }
+
+      // Create debug entry with metadata
       const debugEntry = {
         index: index,
         author: part.author || 'Unknown Agent',
         extractedText: extractedText,
         fullData: partData,
-        hasText: !!extractedText
+        hasText: !!extractedText,
+        hasGrounding: !!part.groundingMetadata?.searchEntryPoint?.renderedContent
       };
 
       debugResponses.push(debugEntry);
@@ -1289,6 +1339,8 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     this.scenarioResponse = {
       finalText: finalText,
       riskForecast: riskForecastData,
+      verifier: verifierData,
+      groundingContent: groundingContent,
       debugResponses: debugResponses.length > 0 ? debugResponses : null
     };
   }
@@ -1322,12 +1374,44 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  parseVerifierResponse(jsonData: any): any {
+    try {
+      return {
+        type: 'json_verification',
+        overallConfidence: jsonData.verification_confidence || jsonData.overall_confidence || jsonData.confidence_score || 0,
+        verificationStatus: jsonData.verification_status || jsonData.status || 'verified',
+        summary: jsonData.verification_summary || jsonData.summary || jsonData.verification_details || jsonData.details || '',
+        feedback: jsonData.feedback_for_forecaster || jsonData.feedback || jsonData.recommendations || jsonData.suggestions || [],
+        flags: jsonData.flags || jsonData.warnings || [],
+        metadata: {
+          originalForecastId: jsonData.original_forecast_id || '',
+          verifiedAt: jsonData.verified_at || new Date().toISOString(),
+          verifierVersion: jsonData.verifier_version || 'unknown'
+        }
+      };
+    } catch (e) {
+      console.error('Error parsing verifier response:', e);
+      return null;
+    }
+  }
+
+  extractConfidenceFromText(text: string): number {
+    // Extract confidence percentage from text
+    const confidenceMatch = text.match(/confidence[:\s]*(\d+(?:\.\d+)?)[%]?/i);
+    if (confidenceMatch) {
+      const confidence = parseFloat(confidenceMatch[1]);
+      return confidence > 1 ? confidence / 100 : confidence;
+    }
+    return 0;
+  }
+
   startNewSession() {
     this.scenarioCompleted = false;
     this.scenarioResponse = null;
     this.selectedDropdownOption = '';
     this.showRiskDetails = false;
     this.showTechnicalDetails = false;
+    this.showVerifierDetails = false;
     // Generate a new session ID for scenarios without calling backend
     this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
   }
@@ -1553,6 +1637,10 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleTechnicalDetails(): void {
     this.showTechnicalDetails = !this.showTechnicalDetails;
+  }
+
+  toggleVerifierDetails(): void {
+    this.showVerifierDetails = !this.showVerifierDetails;
   }
 
   formatKey(key: string): string {
