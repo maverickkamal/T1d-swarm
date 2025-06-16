@@ -309,14 +309,6 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   createSession() {
-    // Only create backend session if we're not in scenario mode
-    if (this.scenarioCompleted || this.selectedDropdownOption) {
-      // For scenarios, just generate a local session ID
-      this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
-      return;
-    }
-    
-    // Original session creation logic for chat mode
     this.sessionService.createSession(this.userId, this.appName)
         .subscribe((res) => {
           this.currentSessionState = res.state;
@@ -388,21 +380,15 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
       error: (err) => console.error('SSE error:', err),
       complete: () => {
         this.streamingTextMessage = null;
-        // Only reload session if not in scenario mode
-        if (!this.scenarioCompleted && !this.selectedDropdownOption && this.sessionTab) {
-          this.sessionTab.reloadSession(this.sessionId);
-        }
-        // Only get trace if not in scenario mode
-        if (!this.scenarioCompleted && !this.selectedDropdownOption) {
-          this.eventService.getTrace(this.sessionId)
-              .pipe(catchError((error) => {
-                if (error.status === 404) {
-                  return of(null);
-                }
-                return of([]);
-              }))
-              .subscribe(res => {this.traceData = res})
-        }
+        this.sessionTab.reloadSession(this.sessionId);
+        this.eventService.getTrace(this.sessionId)
+            .pipe(catchError((error) => {
+              if (error.status === 404) {
+                return of(null);
+              }
+              return of([]);
+            }))
+            .subscribe(res => {this.traceData = res})
       },
     });
     // Clear input
@@ -965,16 +951,32 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    // --- Full State Reset ---
+    // 1. Reset the core session data
     this.sessionId = session.id;
     this.currentSessionState = session.state;
     this.evalCase = null;
     this.isChatMode.set(true);
-
     this.resetEventsAndMessages();
+
+    // 2. Reset the Scenario Interface State
+    this.scenarioCompleted = false;
+    this.scenarioResponse = null;
+    this.selectedDropdownOption = '';
+    this.showRiskDetails = false;
+    this.showVerifierDetails = false;
+    this.showTechnicalDetails = false;
+    // --- End Full State Reset ---
+
     let index = 0;
 
     session.events.forEach((event: any) => {
+      // When loading a session, check for scenario responses in the events
       event.content?.parts?.forEach((part: any) => {
+        if (part.text && this.isJsonString(part.text)) {
+           this.processScenarioResponse([JSON.parse(part.text)]);
+           this.scenarioCompleted = true; // Mark as a scenario
+        }
         this.storeMessage(
             part, event, index, event.author === 'user' ? 'user' : 'bot');
         index += 1;
@@ -1133,18 +1135,14 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onNewSessionClick() {
-    // Only create backend session if not in scenario mode
-    if (!this.scenarioCompleted && !this.selectedDropdownOption) {
-      this.createSession();
-    } else {
-      // For scenario mode, just generate a new local session ID
-      this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
-    }
-    
+    this.createSession();
     this.eventData.clear();
     this.eventMessageIndexArray = [];
     this.messages = [];
     this.artifacts = [];
+    this.scenarioCompleted = false;
+    this.scenarioResponse = null;
+    this.selectedDropdownOption = '';
 
     // Close eval history if opened
     if (this.evalTab && !!this.evalTab.showEvalHistory) {
@@ -1174,48 +1172,53 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onDropdownChange(event: any) {
+    this.onNewSessionClick(); // Start a new, real session
     this.isGenerating = true;
     this.selectedDropdownOption = event.value;
     this.scenarioResponse = null;
-    
-    // Generate a simple session ID for the scenario request if not exists
-    if (!this.sessionId) {
-      this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
-    }
-    
-    // Create the request in the correct format
-    const request = {
-      appName: this.appName,
-      userId: this.userId,
-      sessionId: this.sessionId,
-      newMessage: {
-        parts: [
-          {
-            text: event.value
-          }
-        ],
-        role: "user"
-      },
-      streaming: false
-    };
-    
-    // Call the backend endpoint
-    this.http.post('http://localhost:8000/run', request).subscribe({
-      next: (response: any) => {
-        console.log('Scenario generation completed:', response);
-        this.processScenarioResponse(response);
-        this.isGenerating = false;
-        this.scenarioCompleted = true;
-      },
-      error: (error) => {
-        console.error('Error generating scenario:', error);
-        this.isGenerating = false;
-        // Show error to user
-        this._snackBar.open('Error generating scenario. Please try again.', 'Close', {
-          duration: 3000
-        });
-      }
-    });
+
+    // Use a slight delay to ensure the new session ID from createSession() is available
+    setTimeout(() => {
+      const request: AgentRunRequest = {
+        appName: this.appName,
+        userId: this.userId,
+        sessionId: this.sessionId,
+        newMessage: {
+          parts: [{text: event.value}],
+          role: 'user'
+        },
+        streaming: false  // Scenarios are not streamed
+      };
+
+      this.agentService.run(request).subscribe({
+        next: (response: any) => {
+          console.log('Scenario generation completed:', response);
+          this.processScenarioResponse(response);
+          this.isGenerating = false;
+          this.scenarioCompleted = true;
+          // Manually add the user and bot messages to the display
+          this.messages.push({role: 'user', text: event.value});
+          // The full response is complex, we display the parsed version via scenarioResponse
+          // but we need a placeholder for the bot response in the chat history
+          this.messages.push({
+            role: 'bot',
+            text: this.scenarioResponse?.finalText || 'Scenario processed.'
+          });
+          this.messagesSubject.next(this.messages);
+          this.sessionTab.reloadSession(this.sessionId); // Refresh session list
+          this.eventService.getTrace(this.sessionId).subscribe(res => {
+            this.traceData = res;
+          });
+        },
+        error: (error) => {
+          console.error('Error generating scenario:', error);
+          this.isGenerating = false;
+          this._snackBar.open(
+              'Error generating scenario. Please try again.', 'Close',
+              {duration: 3000});
+        }
+      });
+    }, 200); // Increased delay to be safer
   }
 
   processScenarioResponse(response: any) {
@@ -1406,22 +1409,10 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   startNewSession() {
-    this.scenarioCompleted = false;
-    this.scenarioResponse = null;
-    this.selectedDropdownOption = '';
-    this.showRiskDetails = false;
-    this.showTechnicalDetails = false;
-    this.showVerifierDetails = false;
-    // Generate a new session ID for scenarios without calling backend
-    this.sessionId = 'scenario-session-' + Math.random().toString(36).substr(2, 9);
+    this.onNewSessionClick();
   }
 
   selectEvent(key: string) {
-    // Skip event selection in scenario mode to avoid 404 errors
-    if (this.scenarioCompleted || this.selectedDropdownOption) {
-      return;
-    }
-    
     this.selectedEvent = this.eventData.get(key);
     this.selectedEventIndex = this.getIndexOfKeyInMap(key);
     this.eventService.getEventTrace(this.selectedEvent.id).subscribe((res) => {
