@@ -969,13 +969,15 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     // --- End Full State Reset ---
 
     let index = 0;
+    let isScenarioSession = false;
+    const scenarioParts: any[] = [];
 
     session.events.forEach((event: any) => {
       // When loading a session, check for scenario responses in the events
       event.content?.parts?.forEach((part: any) => {
         if (part.text && this.isJsonString(part.text)) {
-           this.processScenarioResponse([JSON.parse(part.text)]);
-           this.scenarioCompleted = true; // Mark as a scenario
+           scenarioParts.push(JSON.parse(part.text));
+           isScenarioSession = true;
         }
         this.storeMessage(
             part, event, index, event.author === 'user' ? 'user' : 'bot');
@@ -985,6 +987,17 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       });
     });
+
+    // If this is a scenario session, restore the selectedDropdownOption from the first user message
+    if (isScenarioSession) {
+      this.processScenarioResponse(scenarioParts);
+      this.scenarioCompleted = true;
+      const firstUserMessage = this.messages.find(msg => msg.role === 'user');
+      if (firstUserMessage && firstUserMessage.text) {
+        this.selectedDropdownOption = firstUserMessage.text;
+        console.log('Restored scenario dropdown option:', this.selectedDropdownOption);
+      }
+    }
 
     this.eventService.getTrace(this.sessionId).subscribe(res => {
       this.traceData = res;
