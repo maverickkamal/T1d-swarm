@@ -32,3 +32,8 @@ export interface IntermediateData {
   toolUses: any[];
   intermediateResponses: any[];
 }
+
+export interface ScenarioOption {
+  id: string;
+  display_name: string;
+}

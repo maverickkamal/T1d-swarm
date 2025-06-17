@@ -31,6 +31,7 @@ import {HttpClient} from '@angular/common/http';
 import {URLUtil} from '../../../utils/url-util';
 import {AgentRunRequest} from '../../core/models/AgentRunRequest';
 import {Session} from '../../core/models/Session';
+import {ScenarioOption} from '../../core/models/types';
 import {AgentService} from '../../core/services/agent.service';
 import {ArtifactService} from '../../core/services/artifact.service';
 import {AudioService} from '../../core/services/audio.service';
@@ -200,6 +201,27 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
       shareReplay(),
   );
 
+  // Load scenarios
+  protected isLoadingScenarios: WritableSignal<boolean> = signal(false);
+  protected readonly scenarios$: Observable<ScenarioOption[]> = of([]).pipe(
+      tap(() => {
+        this.isLoadingScenarios.set(true);
+      }),
+      switchMap(
+          () => this.agentService.listScenarios().pipe(
+              catchError((err: HttpErrorResponse) => {
+                console.error('Error loading scenarios:', err.message);
+                return of([]);
+              }),
+              ),
+          ),
+      take(1),
+      tap(() => {
+        this.isLoadingScenarios.set(false);
+      }),
+      shareReplay(),
+  );
+
   // Trace tab 
   traceTabEnabled = true;
 
@@ -209,6 +231,12 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   showRiskDetails = false;
   showTechnicalDetails = false;
   showVerifierDetails = false;
+  scenarioDataReady = false;
+  customInputText = '';
+  showCustomInput = false;
+  customInputDone = false;
+  scenarioError = false;
+  scenarioErrorMessage = '';
 
   constructor(
       private sanitizer: DomSanitizer,
@@ -1156,6 +1184,12 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     this.scenarioCompleted = false;
     this.scenarioResponse = null;
     this.selectedDropdownOption = '';
+    this.scenarioDataReady = false;
+    this.scenarioError = false;
+    this.scenarioErrorMessage = '';
+    this.showCustomInput = false;
+    this.customInputDone = false;
+    this.customInputText = '';
 
     // Close eval history if opened
     if (this.evalTab && !!this.evalTab.showEvalHistory) {
@@ -1185,53 +1219,135 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onDropdownChange(event: any) {
-    this.onNewSessionClick(); // Start a new, real session
-    this.isGenerating = true;
     this.selectedDropdownOption = event.value;
     this.scenarioResponse = null;
+    this.scenarioDataReady = false;
+    this.scenarioCompleted = false;
+    this.showCustomInput = event.value === 'custom';
+    this.customInputDone = false;
+    this.customInputText = '';
+    // Reset error state when dropdown changes
+    this.scenarioError = false;
+    this.scenarioErrorMessage = '';
 
-    // Use a slight delay to ensure the new session ID from createSession() is available
+    if (event.value === 'custom') {
+      // For custom option, just show the input field
+      return;
+    }
+
+    // For non-custom options, get scenario data
+    this.agentService.getScenario(event.value).subscribe({
+      next: (scenarioData: any) => {
+        console.log('Scenario data retrieved:', scenarioData);
+        this.scenarioDataReady = true;
+        this.scenarioError = false;
+        this.scenarioErrorMessage = '';
+      },
+      error: (error) => {
+        console.error('Error retrieving scenario data:', error);
+        this.scenarioDataReady = false;
+        this.scenarioError = true;
+        this.scenarioErrorMessage = 'Failed to load scenario data. Please select a different scenario or try again.';
+        this._snackBar.open(
+            'Error retrieving scenario data. Please try again.', 'Close',
+            {duration: 3000});
+      }
+    });
+  }
+
+  onCustomInputDone() {
+    if (!this.customInputText.trim()) {
+      this._snackBar.open('Please enter a custom scenario text.', 'Close', {duration: 3000});
+      this.customInputDone = false;
+      return;
+    }
+    
+    // Reset error state
+    this.scenarioError = false;
+    this.scenarioErrorMessage = '';
+    
+    this.agentService.getScenario('custom', this.customInputText).subscribe({
+      next: (scenarioData: any) => {
+        console.log('Custom scenario data retrieved:', scenarioData);
+        this.scenarioDataReady = true;
+        this.scenarioError = false;
+        this.scenarioErrorMessage = '';
+      },
+      error: (error) => {
+        console.error('Error retrieving custom scenario data:', error);
+        this.customInputDone = false;
+        this.scenarioDataReady = false;
+        this.scenarioError = true;
+        this.scenarioErrorMessage = 'Failed to process custom scenario. Please check your input and try again.';
+        this._snackBar.open(
+            'Error retrieving scenario data. Please try again.', 'Close',
+            {duration: 3000});
+      }
+    });
+  }
+
+  onRunScenario() {
+    this.onNewSessionClick(); // Start a new session
+    this.isGenerating = true;
+
+    // Use a delay to ensure session is created
     setTimeout(() => {
-      const request: AgentRunRequest = {
-        appName: this.appName,
-        userId: this.userId,
-        sessionId: this.sessionId,
-        newMessage: {
-          parts: [{text: event.value}],
-          role: 'user'
-        },
-        streaming: false  // Scenarios are not streamed
-      };
+      let scenarioText = '';
+      
+      if (this.selectedDropdownOption === 'custom') {
+        scenarioText = this.customInputText;
+      } else {
+        // Get display name for non-custom scenarios
+        this.getScenarioDisplayName(this.selectedDropdownOption).pipe(take(1)).subscribe(displayName => {
+          scenarioText = displayName || this.selectedDropdownOption;
+          this.executeScenarioRun(scenarioText);
+        });
+        return;
+      }
+      
+      this.executeScenarioRun(scenarioText);
+    }, 200);
+  }
 
-      this.agentService.run(request).subscribe({
-        next: (response: any) => {
-          console.log('Scenario generation completed:', response);
-          this.processScenarioResponse(response);
-          this.isGenerating = false;
-          this.scenarioCompleted = true;
-          // Manually add the user and bot messages to the display
-          this.messages.push({role: 'user', text: event.value});
-          // The full response is complex, we display the parsed version via scenarioResponse
-          // but we need a placeholder for the bot response in the chat history
-          this.messages.push({
-            role: 'bot',
-            text: this.scenarioResponse?.finalText || 'Scenario processed.'
-          });
-          this.messagesSubject.next(this.messages);
-          this.sessionTab.reloadSession(this.sessionId); // Refresh session list
-          this.eventService.getTrace(this.sessionId).subscribe(res => {
-            this.traceData = res;
-          });
-        },
-        error: (error) => {
-          console.error('Error generating scenario:', error);
-          this.isGenerating = false;
-          this._snackBar.open(
-              'Error generating scenario. Please try again.', 'Close',
-              {duration: 3000});
-        }
-      });
-    }, 200); // Increased delay to be safer
+  private executeScenarioRun(scenarioText: string) {
+    const request: AgentRunRequest = {
+      appName: this.appName,
+      userId: this.userId,
+      sessionId: this.sessionId,
+      newMessage: {
+        parts: [{text: scenarioText}],
+        role: 'user'
+      },
+      streaming: false
+    };
+
+    this.agentService.run(request).subscribe({
+      next: (response: any) => {
+        console.log('Scenario generation completed:', response);
+        this.processScenarioResponse(response);
+        this.isGenerating = false;
+        this.scenarioCompleted = true;
+        
+        // Add messages to display
+        this.messages.push({role: 'user', text: scenarioText});
+        this.messages.push({
+          role: 'bot',
+          text: this.scenarioResponse?.finalText || 'Scenario processed.'
+        });
+        this.messagesSubject.next(this.messages);
+        this.sessionTab.reloadSession(this.sessionId);
+        this.eventService.getTrace(this.sessionId).subscribe(res => {
+          this.traceData = res;
+        });
+      },
+      error: (error) => {
+        console.error('Error generating scenario:', error);
+        this.isGenerating = false;
+        this._snackBar.open(
+            'Error generating scenario. Please try again.', 'Close',
+            {duration: 3000});
+      }
+    });
   }
 
   processScenarioResponse(response: any) {
@@ -1693,5 +1809,15 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
       default:
         return '#9aa0a6';
     }
+  }
+
+  // Helper method to get scenario display name
+  getScenarioDisplayName(scenarioId: string): Observable<string> {
+    return this.scenarios$.pipe(
+      map(scenarios => {
+        const scenario = scenarios.find(s => s.id === scenarioId);
+        return scenario ? scenario.display_name : scenarioId;
+      })
+    );
   }
 }

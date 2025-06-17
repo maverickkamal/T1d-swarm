@@ -248,29 +248,83 @@
           <!-- Scenario Dropdown -->
           <div class="scenario-dropdown" style="margin-bottom: 30px;">
             @if (!scenarioCompleted) {
-              <mat-form-field class="input-field" appearance="outline" style="width: 300px;">
+              <mat-form-field class="modern-input-field" appearance="outline">
                 <mat-label>Select a Scenario</mat-label>
-                <mat-select [(value)]="selectedDropdownOption" (selectionChange)="onDropdownChange($event)" [disabled]="isGenerating">
-                  <mat-option value="scenario1">Scenario 1</mat-option>
-                  <mat-option value="scenario2">Scenario 2</mat-option>
-                  <mat-option value="scenario3">Scenario 3</mat-option>
-                  <mat-option value="scenario4">Scenario 4</mat-option>
+                <mat-select [(value)]="selectedDropdownOption" (selectionChange)="onDropdownChange($event)" [disabled]="isGenerating || isLoadingScenarios()" class="modern-select">
+                  @if ((scenarios$ | async); as availableScenarios) {
+                    @for (scenario of availableScenarios; track scenario.id) {
+                      <mat-option [value]="scenario.id" class="modern-option">{{ scenario.display_name }}</mat-option>
+                    }
+                  }
+                  @if (isLoadingScenarios()) {
+                    <mat-option disabled>Loading scenarios...</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
             } @else {
-              <div class="completed-scenario" style="color: #9aa0a6; font-size: 16px; text-align: center;">
-                Completed: {{selectedDropdownOption}}
-                <button mat-button (click)="startNewSession()" style="margin-left: 10px; color: #8ab4f8;">
+              <div class="completed-scenario">
+                Completed: {{(getScenarioDisplayName(selectedDropdownOption) | async) || selectedDropdownOption}}
+                <button mat-raised-button (click)="startNewSession()" class="new-session-btn">
                   New Session
                 </button>
-                      </div>
-                    }
-                  </div>
+              </div>
+            }
+          </div>
+
+          <!-- Custom Input Section -->
+          @if (showCustomInput && !scenarioCompleted) {
+            <div class="custom-input-section">
+              <mat-form-field class="modern-input-field full-width" appearance="outline">
+                <mat-label>Enter your custom scenario</mat-label>
+                <textarea 
+                  matInput 
+                  [(ngModel)]="customInputText" 
+                  placeholder="Describe your scenario in detail..."
+                  rows="4"
+                  class="custom-textarea">
+                </textarea>
+              </mat-form-field>
+              
+              <div class="custom-controls">
+                <mat-checkbox 
+                  [(ngModel)]="customInputDone" 
+                  (change)="customInputDone ? onCustomInputDone() : null"
+                  [disabled]="!customInputText.trim()"
+                  class="done-checkbox">
+                  Done
+                </mat-checkbox>
+              </div>
+            </div>
+          }
+
+          <!-- Error Message -->
+          @if (scenarioError && !isGenerating && !scenarioCompleted) {
+            <div class="error-message-container">
+              <div class="error-message">
+                <mat-icon class="error-icon">error_outline</mat-icon>
+                <span>{{ scenarioErrorMessage }}</span>
+              </div>
+            </div>
+          }
+
+          <!-- Run Button -->
+          @if (scenarioDataReady && !scenarioError && !isGenerating && !scenarioCompleted && (!showCustomInput || customInputDone)) {
+            <div class="run-button-container">
+              <button 
+                mat-raised-button 
+                color="primary" 
+                (click)="onRunScenario()"
+                class="run-scenario-btn">
+                <mat-icon>play_arrow</mat-icon>
+                Run Scenario
+              </button>
+            </div>
+          }
 
           <!-- Loading State -->
           @if (isGenerating) {
             <div class="generating-container" style="text-align: center; margin-bottom: 30px;">
-              <div style="margin-bottom: 16px; color: white;">Generating scenario: {{selectedDropdownOption}}</div>
+              <div style="margin-bottom: 16px; color: white;">Generating scenario: {{(getScenarioDisplayName(selectedDropdownOption) | async) || selectedDropdownOption}}</div>
               <mat-spinner diameter="40"></mat-spinner>
                     </div>
                   }

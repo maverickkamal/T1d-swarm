@@ -20,6 +20,7 @@ import {Injectable, NgZone} from '@angular/core';
 import {BehaviorSubject, Observable, of} from 'rxjs';
 import {URLUtil} from '../../../utils/url-util';
 import {AgentRunRequest} from '../models/AgentRunRequest';
+import {ScenarioOption} from '../models/types';
 
 @Injectable({
   providedIn: 'root',
@@ -115,5 +116,35 @@ export class AgentService {
       return this.http.get<string[]>(url);
     }
     return new Observable<[]>();
+  }
+
+  listScenarios(): Observable<ScenarioOption[]> {
+    if (this.apiServerDomain != undefined) {
+      const url = this.apiServerDomain + `/scenarios`;
+      return this.http.get<ScenarioOption[]>(url);
+    }
+    return of([]);
+  }
+
+  getScenario(scenarioId: string, customText?: string): Observable<any> {
+    if (this.apiServerDomain != undefined) {
+      const url = this.apiServerDomain + `/get-scenario/`;
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      const options = {
+        headers: headers,
+      };
+      const body: any = {
+        scenario_id: scenarioId
+      };
+      
+      if (customText) {
+        body.custom_text = customText;
+      }
+      
+      return this.http.post<any>(url, body, options);
+    }
+    return of({});
   }
 }
