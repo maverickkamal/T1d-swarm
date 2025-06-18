@@ -1,4 +1,5 @@
 import json
+import os
 
 from google.adk.agents import LlmAgent
 from google.adk.tools import google_search
@@ -10,7 +11,7 @@ from .prompt import FORECAST_VERIFIER_PROMPT, VerificationOutput
 load_dotenv()
 
 
-MODEL_NAME = "gemini-2.5-flash-preview-05-20"
+MODEL_NAME = os.getenv("FORECAST_VERIFIER_MODEL")
 
 # --- Configure Llm Agent --- 
 
