@@ -307,14 +307,7 @@
             </div>
           }
 
-          <!-- Test Progress Button (temporary for debugging) -->
-          <button 
-            mat-raised-button 
-            color="accent" 
-            (click)="testProgressTracking()"
-            style="margin: 10px;">
-            🧪 Test Progress Tracking
-          </button>
+
 
           <!-- Run button -->
           @if (scenarioDataReady && !scenarioError && !isGenerating && !scenarioCompleted && (!showCustomInput || customInputDone)) {
