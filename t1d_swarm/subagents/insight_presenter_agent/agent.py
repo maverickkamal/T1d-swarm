@@ -1,3 +1,4 @@
+import os
 
 from google.adk.agents import LlmAgent
 from dotenv import load_dotenv
@@ -7,7 +8,7 @@ from .prompts import INSIGHT_PRESENTER_PROMPT
 load_dotenv()
 
 
-MODEL_NAME = "gemini-2.5-pro-preview-05-06"
+MODEL_NAME = os.getenv("INSIGHT_PRESENTER_MODEL")
 
 # --- Configure Llm Agent --- 
 
