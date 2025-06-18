@@ -1,4 +1,5 @@
 import json
+import os
 
 from google.adk.agents import LlmAgent
 from dotenv import load_dotenv
@@ -8,7 +9,7 @@ from .prompts import AMBIENT_CONTEXT_PROMPT, ContextEventOutput
 load_dotenv()
 
 
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = os.getenv("AMBIENT_CONTEXT_MODEL")
 
 # --- Configure Llm Agent --- 
 
