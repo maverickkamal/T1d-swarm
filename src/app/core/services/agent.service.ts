@@ -126,7 +126,7 @@ export class AgentService {
     return of([]);
   }
 
-  getScenario(scenarioId: string, customText?: string): Observable<any> {
+  getScenario(scenarioId: string, sessionId: string, customText?: string): Observable<any> {
     if (this.apiServerDomain != undefined) {
       const url = this.apiServerDomain + `/get-scenario/`;
       const headers = {
@@ -136,7 +136,8 @@ export class AgentService {
         headers: headers,
       };
       const body: any = {
-        scenario_id: scenarioId
+        scenario_id: scenarioId,
+        session_id: sessionId
       };
       
       if (customText) {

@@ -307,7 +307,16 @@
             </div>
           }
 
-          <!-- Run Button -->
+          <!-- Test Progress Button (temporary for debugging) -->
+          <button 
+            mat-raised-button 
+            color="accent" 
+            (click)="testProgressTracking()"
+            style="margin: 10px;">
+            🧪 Test Progress Tracking
+          </button>
+
+          <!-- Run button -->
           @if (scenarioDataReady && !scenarioError && !isGenerating && !scenarioCompleted && (!showCustomInput || customInputDone)) {
             <div class="run-button-container">
               <button 
@@ -321,13 +330,24 @@
             </div>
           }
 
-          <!-- Loading State -->
+          <!-- Loading State with Progress Tracking -->
           @if (isGenerating) {
-            <div class="generating-container" style="text-align: center; margin-bottom: 30px;">
-              <div style="margin-bottom: 16px; color: white;">Generating scenario: {{(getScenarioDisplayName(selectedDropdownOption) | async) || selectedDropdownOption}}</div>
-              <mat-spinner diameter="40"></mat-spinner>
-                    </div>
-                  }
+            <div class="generating-container" style="margin-bottom: 30px;">
+              <div style="margin-bottom: 16px; color: white; text-align: center;">Generating scenario: {{(getScenarioDisplayName(selectedDropdownOption) | async) || selectedDropdownOption}}</div>
+              
+              <!-- Advanced Progress Component -->
+              <app-progress 
+                [sessionId]="sessionId"
+                [show]="isGenerating"
+                [debug]="false">
+              </app-progress>
+              
+              <!-- Fallback Simple Spinner (in case SSE is not available) -->
+              <div style="text-align: center; margin-top: 20px;" *ngIf="!sessionId">
+                <mat-spinner diameter="40"></mat-spinner>
+              </div>
+            </div>
+          }
 
           <!-- Response Display -->
           @if (scenarioResponse && !isGenerating) {

@@ -62,6 +62,7 @@ import {StateTabComponent} from './state-tab/state-tab.component';
 import {ViewImageDialogComponent} from './view-image-dialog/view-image-dialog.component';
 import { TraceTabComponent } from './trace-tab/trace-tab.component';
 import { TraceTreeComponent } from './trace-tab/trace-tree/trace-tree.component';
+import { ProgressComponent } from './progress/progress.component';
 
 const COMPONENTS = [
   ChatComponent,
@@ -80,7 +81,8 @@ const COMPONENTS = [
   AudioPlayerComponent,
   ResizableDrawerDirective,
   TraceTabComponent,
-  TraceTreeComponent
+  TraceTreeComponent,
+  ProgressComponent
 ];
 
 @NgModule({

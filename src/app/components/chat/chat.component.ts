@@ -42,6 +42,7 @@ import {FeatureFlagService} from '../../core/services/feature-flag.service';
 import {SessionService} from '../../core/services/session.service';
 import {VideoService} from '../../core/services/video.service';
 import {WebSocketService} from '../../core/services/websocket.service';
+import {ProgressService} from '../../core/services/progress.service';
 import {ResizableDrawerDirective} from '../../directives/resizable-drawer.directive';
 import {getMediaTypeFromMimetype, MediaType, openBase64InNewTab} from '../artifact-tab/artifact-tab.component';
 import {AudioPlayerComponent} from '../audio-player/audio-player.component';
@@ -238,19 +239,20 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   scenarioError = false;
   scenarioErrorMessage = '';
 
-  constructor(
-      private sanitizer: DomSanitizer,
-      private sessionService: SessionService,
-      private artifactService: ArtifactService,
-      private audioService: AudioService,
-      private webSocketService: WebSocketService,
-      private videoService: VideoService,
-      private dialog: MatDialog,
-      private eventService: EventService,
-      private route: ActivatedRoute,
-      private downloadService: DownloadService,
-      private evalService: EvalService,
-      private http: HttpClient
+    constructor(
+    private sanitizer: DomSanitizer,
+    private sessionService: SessionService,
+    private artifactService: ArtifactService,
+    private audioService: AudioService,
+    private webSocketService: WebSocketService,
+    private videoService: VideoService,
+    private dialog: MatDialog,
+    private eventService: EventService,
+    private route: ActivatedRoute,
+    private downloadService: DownloadService,
+    private evalService: EvalService,
+    private http: HttpClient,
+    private progressService: ProgressService
   ) {}
 
   ngOnInit(): void {
@@ -825,6 +827,7 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.webSocketService.closeConnection();
+    this.progressService.stopProgressStream();
   }
 
   onAppSelection(event: any) {
@@ -987,10 +990,16 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     this.isChatMode.set(true);
     this.resetEventsAndMessages();
 
-    // 2. Reset the Scenario Interface State
+    // 2. Reset ALL Scenario Interface State (including new properties)
     this.scenarioCompleted = false;
     this.scenarioResponse = null;
     this.selectedDropdownOption = '';
+    this.scenarioDataReady = false;
+    this.scenarioError = false;
+    this.scenarioErrorMessage = '';
+    this.showCustomInput = false;
+    this.customInputDone = false;
+    this.customInputText = '';
     this.showRiskDetails = false;
     this.showVerifierDetails = false;
     this.showTechnicalDetails = false;
@@ -1001,23 +1010,35 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     const scenarioParts: any[] = [];
 
     session.events.forEach((event: any) => {
-      // When loading a session, check for scenario responses in the events
+      // Process message content and store messages
       event.content?.parts?.forEach((part: any) => {
+        // Check for scenario responses (JSON content that indicates scenario processing)
         if (part.text && this.isJsonString(part.text)) {
-           scenarioParts.push(JSON.parse(part.text));
-           isScenarioSession = true;
+          try {
+            const parsedJson = JSON.parse(part.text);
+            // Only consider it a scenario if it has scenario-specific structure
+            if (this.isScenarioResponse(parsedJson)) {
+              scenarioParts.push(parsedJson);
+              isScenarioSession = true;
+            }
+          } catch (e) {
+            // Not valid JSON, continue
+          }
         }
+        
         this.storeMessage(
             part, event, index, event.author === 'user' ? 'user' : 'bot');
         index += 1;
+        
+        // Store events for the event tab (for non-user events)
         if (event.author && event.author !== 'user') {
           this.storeEvents(part, event, index);
         }
       });
     });
 
-    // If this is a scenario session, restore the selectedDropdownOption from the first user message
-    if (isScenarioSession) {
+    // Only mark as scenario completed if we have valid scenario responses
+    if (isScenarioSession && scenarioParts.length > 0) {
       this.processScenarioResponse(scenarioParts);
       this.scenarioCompleted = true;
       const firstUserMessage = this.messages.find(msg => msg.role === 'user');
@@ -1025,11 +1046,67 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
         this.selectedDropdownOption = firstUserMessage.text;
         console.log('Restored scenario dropdown option:', this.selectedDropdownOption);
       }
+    } else {
+      // For regular sessions or empty sessions, ensure dropdown is available
+      this.scenarioCompleted = false;
+      console.log('Session is not a scenario session, dropdown available');
     }
 
+    // Always load trace data
     this.eventService.getTrace(this.sessionId).subscribe(res => {
       this.traceData = res;
-    })
+    });
+
+    // Trigger change detection to ensure tabs update
+    this.changeDetectorRef.detectChanges();
+    
+    // Force refresh event data after a short delay to ensure proper loading
+    setTimeout(() => {
+      this.refreshEventData();
+    }, 100);
+  }
+
+  // Helper method to determine if parsed JSON is actually a scenario response
+  private isScenarioResponse(parsedJson: any): boolean {
+    if (!parsedJson || typeof parsedJson !== 'object') {
+      return false;
+    }
+
+    // Look for specific scenario response structure patterns
+    const hasRiskForecast = parsedJson.short_term_outlook || 
+                          parsedJson.medium_term_outlook || 
+                          parsedJson.long_term_outlook ||
+                          parsedJson.riskLevel ||
+                          parsedJson.primaryConcern ||
+                          parsedJson.contributingFactors;
+
+    const hasVerification = parsedJson.verification_confidence ||
+                          parsedJson.verification_summary ||
+                          parsedJson.overall_confidence ||
+                          parsedJson.feedback_for_forecaster;
+
+    const hasScenarioAgent = parsedJson.author && 
+                           (parsedJson.author.includes('Agent') || 
+                            parsedJson.author.includes('Forecaster') ||
+                            parsedJson.author.includes('Verifier'));
+
+    const hasScenarioContent = parsedJson.actionable_micro_insight_candidate ||
+                             parsedJson.finalText ||
+                             parsedJson.forecast_response;
+
+    // Must have at least 2 indicators to consider it a scenario response
+    const indicators = [hasRiskForecast, hasVerification, hasScenarioAgent, hasScenarioContent];
+    const indicatorCount = indicators.filter(Boolean).length;
+    
+    return indicatorCount >= 2;
+  }
+
+  // Force refresh event data for the event tab
+  private refreshEventData(): void {
+    if (this.eventData.size > 0) {
+      // Trigger change detection for event tab
+      this.changeDetectorRef.detectChanges();
+    }
   }
 
   protected updateWithSelectedEvalCase(evalCase: EvalCase) {
@@ -1176,6 +1253,9 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onNewSessionClick() {
+    // Stop any existing progress tracking
+    this.progressService.stopProgressStream();
+    
     this.createSession();
     this.eventData.clear();
     this.eventMessageIndexArray = [];
@@ -1236,7 +1316,7 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     // For non-custom options, get scenario data
-    this.agentService.getScenario(event.value).subscribe({
+    this.agentService.getScenario(event.value, this.sessionId).subscribe({
       next: (scenarioData: any) => {
         console.log('Scenario data retrieved:', scenarioData);
         this.scenarioDataReady = true;
@@ -1266,7 +1346,7 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     this.scenarioError = false;
     this.scenarioErrorMessage = '';
     
-    this.agentService.getScenario('custom', this.customInputText).subscribe({
+    this.agentService.getScenario('custom', this.sessionId, this.customInputText).subscribe({
       next: (scenarioData: any) => {
         console.log('Custom scenario data retrieved:', scenarioData);
         this.scenarioDataReady = true;
@@ -1309,7 +1389,11 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     }, 200);
   }
 
-  private executeScenarioRun(scenarioText: string) {
+  private async executeScenarioRun(scenarioText: string) {
+    // The app-progress component will handle all SSE connection logic
+    // Just log the session info for debugging
+    console.log('🚀 Starting scenario run for session:', this.sessionId);
+    
     const request: AgentRunRequest = {
       appName: this.appName,
       userId: this.userId,
@@ -1328,6 +1412,9 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
         this.isGenerating = false;
         this.scenarioCompleted = true;
         
+        // Let progress tracking continue until all agents complete naturally
+        // The progress service will automatically detect completion
+        
         // Add messages to display
         this.messages.push({role: 'user', text: scenarioText});
         this.messages.push({
@@ -1343,6 +1430,8 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
       error: (error) => {
         console.error('Error generating scenario:', error);
         this.isGenerating = false;
+        // Stop progress tracking on error
+        this.progressService.stopProgressStream();
         this._snackBar.open(
             'Error generating scenario. Please try again.', 'Close',
             {duration: 3000});
@@ -1819,5 +1908,38 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
         return scenario ? scenario.display_name : scenarioId;
       })
     );
+  }
+
+  testProgressTracking() {
+    console.log('🧪 Testing progress tracking...');
+    const testSessionId = 'test_' + Date.now();
+    
+    // Start progress tracking
+    this.progressService.startProgressStream(testSessionId);
+    
+    // Add debugging
+    this.progressService.connectionStatus$.subscribe(status => {
+      console.log('🧪 Test - Connection status:', status);
+    });
+    
+    this.progressService.progressEvents$.subscribe(events => {
+      console.log('🧪 Test - Progress events:', events.length, events);
+    });
+    
+    // Test backend endpoint if you added it
+    this.http.post(`http://localhost:8080/test-progress/${testSessionId}`, {}).subscribe({
+      next: (response) => {
+        console.log('🧪 Test endpoint response:', response);
+      },
+      error: (error) => {
+        console.log('🧪 Test endpoint not available (add it to backend):', error);
+      }
+    });
+    
+    // Stop after 30 seconds
+    setTimeout(() => {
+      this.progressService.stopProgressStream();
+      console.log('🧪 Test completed');
+    }, 30000);
   }
 }

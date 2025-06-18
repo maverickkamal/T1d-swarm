@@ -1,0 +1,176 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<div class="progress-container" *ngIf="show && (progressState$ | async) as progressState">
+  
+  <!-- Progress Header -->
+  <div class="progress-header">
+    <div class="header-title">
+      <span class="title-icon">🎯</span>
+      <span class="title-text">Analysis Progress</span>
+      <div class="connection-status" 
+           [style.color]="getConnectionColor(progressState.connectionStatus)"
+           *ngIf="(connectionStatus$ | async) as connectionStatus">
+        <span class="connection-icon">{{ getConnectionIcon(connectionStatus) }}</span>
+        <span class="connection-text">{{ connectionStatus | titlecase }}</span>
+      </div>
+    </div>
+    
+    <!-- Overall Progress Bar -->
+    <div class="overall-progress">
+      <div class="progress-info">
+        <span class="progress-text">Overall Progress: {{ progressState.overallProgress }}%</span>
+        <span class="refinement-info" *ngIf="progressState.refinementIterations > 0">
+          ({{ progressState.refinementIterations }} refinement iterations)
+        </span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" 
+             [style.width.%]="progressState.overallProgress">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Progress List -->
+  <div class="agents-container" *ngIf="progressState.agents.length > 0">
+    <div class="agent-item" 
+         *ngFor="let agent of progressState.agents; trackBy: trackByAgentName"
+         [class.has-children]="hasChildren(agent)">
+      
+      <!-- Agent Info -->
+      <div class="agent-info">
+        <div class="agent-status">
+          <span class="status-icon" 
+                [style.color]="getStatusColor(agent.status)">
+            {{ getStatusIcon(agent.status) }}
+          </span>
+          <span class="agent-name">{{ getAgentDisplayName(agent.name) }}</span>
+          <span class="agent-state" 
+                [style.color]="getStatusColor(agent.status)">
+            {{ agent.status | uppercase }}
+          </span>
+        </div>
+        
+        <!-- Agent Progress Bar -->
+        <div class="agent-progress" *ngIf="agent.status === 'running' || agent.status === 'complete'">
+          <div class="agent-progress-bar">
+            <div class="agent-progress-fill" 
+                 [style.width.%]="agent.progress"
+                 [style.background-color]="getStatusColor(agent.status)">
+            </div>
+          </div>
+          <span class="progress-percentage">{{ agent.progress }}%</span>
+        </div>
+        
+        <!-- Agent Message -->
+        <div class="agent-message" *ngIf="agent.message">
+          {{ agent.message }}
+        </div>
+        
+        <!-- Agent Duration -->
+        <div class="agent-duration" *ngIf="agent.startTime">
+          <span class="duration-label">Duration:</span>
+          <span class="duration-value">{{ formatDuration(agent.startTime, agent.endTime) }}</span>
+        </div>
+      </div>
+
+      <!-- Child Agents (Nested) -->
+      <div class="child-agents" *ngIf="hasChildren(agent)">
+        <div class="child-agent" 
+             *ngFor="let childAgent of agent.children; trackBy: trackByAgentName">
+          
+          <div class="child-connector">
+            <span class="connector-line">├─</span>
+          </div>
+          
+          <div class="child-info">
+            <div class="child-status">
+              <span class="child-status-icon" 
+                    [style.color]="getStatusColor(childAgent.status)">
+                {{ getStatusIcon(childAgent.status) }}
+              </span>
+              <span class="child-name">{{ getAgentDisplayName(childAgent.name) }}</span>
+              <span class="child-state" 
+                    [style.color]="getStatusColor(childAgent.status)">
+                {{ childAgent.status | uppercase }}
+              </span>
+            </div>
+            
+            <div class="child-progress" *ngIf="childAgent.status === 'running' || childAgent.status === 'complete'">
+              <div class="child-progress-bar">
+                <div class="child-progress-fill" 
+                     [style.width.%]="childAgent.progress"
+                     [style.background-color]="getStatusColor(childAgent.status)">
+                </div>
+              </div>
+              <span class="child-progress-percentage">{{ childAgent.progress }}%</span>
+            </div>
+            
+            <div class="child-message" *ngIf="childAgent.message">
+              {{ childAgent.message }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Agents Message -->
+  <div class="no-agents" *ngIf="progressState.agents.length === 0">
+    <div class="loading-spinner">
+      <mat-spinner diameter="24"></mat-spinner>
+    </div>
+    <span class="loading-text">Waiting for agents to start...</span>
+  </div>
+
+  <!-- Completion Message -->
+  <div class="completion-message" *ngIf="progressState.isComplete">
+    <div class="completion-icon">🎉</div>
+    <div class="completion-text">Analysis Complete!</div>
+    <div class="completion-stats" *ngIf="progressState.startTime && progressState.endTime">
+      <span>Total time: {{ formatDuration(progressState.startTime, progressState.endTime) }}</span>
+    </div>
+  </div>
+
+  <!-- Debug Info -->
+  <div class="debug-info" *ngIf="debug">
+    <div class="debug-header">🔍 Debug Information</div>
+    <div class="debug-item">
+      <span class="debug-label">Session ID:</span>
+      <span class="debug-value">{{ progressState.sessionId }}</span>
+    </div>
+    <div class="debug-item">
+      <span class="debug-label">Connection:</span>
+      <span class="debug-value">{{ progressState.connectionStatus }}</span>
+    </div>
+    <div class="debug-item">
+      <span class="debug-label">Agents:</span>
+      <span class="debug-value">{{ progressState.agents.length }}</span>
+    </div>
+    <div class="debug-item">
+      <span class="debug-label">Overall Progress:</span>
+      <span class="debug-value">{{ progressState.overallProgress }}%</span>
+    </div>
+    <div class="debug-actions">
+      <button mat-button (click)="refreshProgress()" class="debug-button">
+        Refresh Progress
+      </button>
+    </div>
+  </div>
+
+
+</div> 

@@ -1,0 +1,469 @@
+// Progress Component Styles - ADK Dark Theme
+
+.progress-container {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid #333;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  color: #e8eaed;
+  font-family: 'Google Sans', 'Roboto', sans-serif;
+  
+  // Smooth animations
+  animation: fadeIn 0.5s ease-out;
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+// Header Section
+.progress-header {
+  margin-bottom: 24px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 16px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  
+  .title-icon {
+    font-size: 20px;
+    margin-right: 8px;
+  }
+  
+  .title-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #8ab4f8;
+    flex: 1;
+  }
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  
+  .connection-icon {
+    font-size: 12px;
+  }
+  
+  .connection-text {
+    font-weight: 500;
+  }
+}
+
+// Overall Progress
+.overall-progress {
+  .progress-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+    
+    .progress-text {
+      font-weight: 600;
+      color: #e8eaed;
+    }
+    
+    .refinement-info {
+      color: #9aa0a6;
+      font-style: italic;
+    }
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #2a2a2a;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #8ab4f8 0%, #34a853 100%);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+      position: relative;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+        animation: shimmer 2s infinite;
+      }
+    }
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// Agents Container
+.agents-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agent-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #333;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #8ab4f8;
+  }
+  
+  &.has-children {
+    border-left: 3px solid #8ab4f8;
+  }
+}
+
+.agent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agent-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  .status-icon {
+    font-size: 16px;
+    min-width: 20px;
+    text-align: center;
+  }
+  
+  .agent-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 15px;
+    color: #e8eaed;
+  }
+  
+  .agent-state {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+.agent-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 32px;
+  
+  .agent-progress-bar {
+    flex: 1;
+    height: 6px;
+    background-color: #2a2a2a;
+    border-radius: 3px;
+    overflow: hidden;
+    
+    .agent-progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+  }
+  
+  .progress-percentage {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8ab4f8;
+    min-width: 40px;
+    text-align: right;
+  }
+}
+
+.agent-message {
+  margin-left: 32px;
+  font-size: 13px;
+  color: #9aa0a6;
+  font-style: italic;
+}
+
+.agent-duration {
+  margin-left: 32px;
+  font-size: 12px;
+  color: #9aa0a6;
+  
+  .duration-label {
+    margin-right: 4px;
+  }
+  
+  .duration-value {
+    font-weight: 600;
+  }
+}
+
+// Child Agents (Nested)
+.child-agents {
+  margin-top: 12px;
+  margin-left: 20px;
+  border-left: 2px solid #333;
+}
+
+.child-agent {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.child-connector {
+  margin-right: 8px;
+  color: #9aa0a6;
+  
+  .connector-line {
+    font-family: monospace;
+    font-size: 14px;
+  }
+}
+
+.child-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.child-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .child-status-icon {
+    font-size: 14px;
+    min-width: 16px;
+    text-align: center;
+  }
+  
+  .child-name {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+    color: #e8eaed;
+  }
+  
+  .child-state {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+.child-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 24px;
+  
+  .child-progress-bar {
+    flex: 1;
+    height: 4px;
+    background-color: #2a2a2a;
+    border-radius: 2px;
+    overflow: hidden;
+    
+    .child-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+  }
+  
+  .child-progress-percentage {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8ab4f8;
+    min-width: 35px;
+    text-align: right;
+  }
+}
+
+.child-message {
+  margin-left: 24px;
+  font-size: 12px;
+  color: #9aa0a6;
+  font-style: italic;
+}
+
+// No Agents State
+.no-agents {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  
+  .loading-spinner {
+    margin-bottom: 8px;
+  }
+  
+  .loading-text {
+    font-size: 14px;
+    color: #9aa0a6;
+    font-weight: 500;
+  }
+}
+
+// Completion Message
+.completion-message {
+  text-align: center;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(52, 168, 83, 0.1) 0%, rgba(138, 180, 248, 0.1) 100%);
+  border-radius: 8px;
+  border: 1px solid #34a853;
+  margin-top: 16px;
+  
+  .completion-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+  
+  .completion-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #34a853;
+    margin-bottom: 8px;
+  }
+  
+  .completion-stats {
+    font-size: 14px;
+    color: #9aa0a6;
+  }
+}
+
+// Debug Information
+.debug-info {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid #444;
+  
+  .debug-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fbbc04;
+    margin-bottom: 12px;
+  }
+  
+  .debug-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+    
+    .debug-label {
+      color: #9aa0a6;
+    }
+    
+    .debug-value {
+      color: #e8eaed;
+      font-weight: 500;
+    }
+  }
+  
+  .debug-actions {
+    margin-top: 12px;
+    
+    .debug-button {
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .progress-container {
+    margin: 10px 0;
+    padding: 16px;
+  }
+  
+  .agent-item {
+    padding: 12px;
+  }
+  
+  .agent-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    
+    .agent-name {
+      font-size: 14px;
+    }
+  }
+  
+  .agent-progress {
+    margin-left: 0;
+  }
+  
+  .agent-message,
+  .agent-duration {
+    margin-left: 0;
+  }
+  
+  .child-agents {
+    margin-left: 12px;
+  }
+  
+  .child-progress {
+    margin-left: 16px;
+  }
+  
+  .child-message {
+    margin-left: 16px;
+  }
+}
+
+// Dark theme overrides
+:host-context(.dark-theme) {
+  .progress-container {
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+    border-color: #444;
+  }
+  
+  .agent-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: #444;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+} 
