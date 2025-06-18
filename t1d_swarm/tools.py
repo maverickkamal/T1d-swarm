@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from .prompt import *
 
 load_dotenv()
-print(os.getenv("GENERATE_SCENARIO_MODEL"))
+
 MODEL = os.getenv("GENERATE_SCENARIO_MODEL")
 
 client = genai.Client(http_options=HttpOptions(api_version="v1"))
