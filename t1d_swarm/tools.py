@@ -1,4 +1,5 @@
 import random
+import os
 from typing import Dict, Optional
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -11,7 +12,8 @@ from dotenv import load_dotenv
 from .prompt import *
 
 load_dotenv()
-
+print(os.getenv("GENERATE_SCENARIO_MODEL"))
+MODEL = os.getenv("GENERATE_SCENARIO_MODEL")
 
 client = genai.Client(http_options=HttpOptions(api_version="v1"))
 
@@ -23,7 +25,7 @@ class ScenarioDict(BaseModel):
 def generate_scenario():
     """ Generates a random but realistic scenario sentence inspired by the real world."""
     response = client.models.generate_content(
-        model='gemini-2.0-flash',
+        model=MODEL,
         config=types.GenerateContentConfig(
             system_instruction=CALLBACK_PROMPT,
             temperature=1.2,
@@ -42,7 +44,7 @@ def generate_scenario():
 def rephrase_custom_scenario(custom_text: str):
     """Rephrase the custom text into a scenario sentence."""
     response = client.models.generate_content(
-        model='gemini-2.0-flash',
+        model=MODEL,
         config=types.GenerateContentConfig(
             system_instruction=REPHRASE_PROMPT,
             temperature=0.5,
