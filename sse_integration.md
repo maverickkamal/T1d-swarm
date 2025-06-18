@@ -239,16 +239,13 @@ The component is fully responsive. For custom mobile layouts:
 
 ## 🔍 Debugging
 
-Enable debug mode by setting the debug flag in the HTML template:
+Enable debug mode by setting the debug flag in the progress component:
 
 ```html
-<div class="debug-info" *ngIf="true">  <!-- Set to true for debugging -->
-  <h4>Debug Info</h4>
-  <p>Session ID: {{ sessionId }}</p>
-  <p>Connection: {{ connectionStatus }}</p>
-  <p>Agents: {{ agentStatuses.length }}</p>
-  <p>Events: {{ progressEvents.length }}</p>
-</div>
+<app-progress 
+  [sessionId]="currentSessionId"
+  [debug]="true">  <!-- Set to true for debugging -->
+</app-progress>
 ```
 
 ## 🎉 That's it!
@@ -404,31 +401,4 @@ async def run_agent(request: AgentRunRequest):
     return results
 ```
 
-### 2. Quick Test - Add this to verify events are working:
-
-```python
-# Add this test endpoint to verify progress tracking
-@app.post("/test-progress/{session_id}")
-async def test_progress_events(session_id: str):
-    """Test endpoint to emit sample progress events"""
-    agents = ["T1dInsightOrchestratorAgent", "AmbientContextAgent", "GlycemicRiskForecasterAgent"]
-    
-    for i, agent in enumerate(agents):
-        await progress_tracker.emit_event(session_id, {
-            "session_id": session_id,
-            "agent_name": agent,
-            "event_type": "agent_start",
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        await asyncio.sleep(2)  # Wait 2 seconds
-        
-        await progress_tracker.emit_event(session_id, {
-            "session_id": session_id, 
-            "agent_name": agent,
-            "event_type": "agent_complete",
-            "timestamp": datetime.now().isoformat()
-        })
-    
-    return {"message": "Test events emitted"}
-``` 
+ 
