@@ -45,24 +45,11 @@ export class ProgressComponent implements OnInit, OnDestroy {
       }
       
       // Always start progress tracking when we have a sessionId
-      console.log('🎯 Progress component starting tracking for session:', this.sessionId);
       this.progressService.startProgressStream(this.sessionId);
-      
-      // Add debugging
-      this.progressService.connectionStatus$.pipe(takeUntil(this.destroy$)).subscribe(status => {
-        console.log('📡 Progress component - Connection status:', status);
-      });
-      
-      this.progressService.progressEvents$.pipe(takeUntil(this.destroy$)).subscribe(events => {
-        console.log('📊 Progress component - Events received:', events.length);
-      });
-    } else {
-      console.log('⚠️ Progress component - No sessionId provided');
     }
   }
 
   ngOnDestroy(): void {
-    console.log('🛑 Progress component destroying - stopping progress stream');
     this.progressService.stopProgressStream();
     this.destroy$.next();
     this.destroy$.complete();

@@ -68,25 +68,21 @@ export class ProgressService {
   public testSSEConnection(sessionId: string): Promise<boolean> {
     return new Promise((resolve) => {
       const testUrl = `${this.baseUrl}/progress/${sessionId}`;
-      console.log('🧪 Testing SSE connection to:', testUrl);
       
       const testEventSource = new EventSource(testUrl);
       
       const timeout = setTimeout(() => {
-        console.log('❌ SSE connection test timed out');
         testEventSource.close();
         resolve(false);
       }, 10000);
       
       testEventSource.onopen = () => {
-        console.log('✅ SSE connection test successful');
         clearTimeout(timeout);
         testEventSource.close();
         resolve(true);
       };
       
       testEventSource.onerror = (error) => {
-        console.log('❌ SSE connection test failed:', error);
         clearTimeout(timeout);
         testEventSource.close();
         resolve(false);
@@ -143,9 +139,6 @@ export class ProgressService {
     
     // Update connection status but preserve progress state
     this.connectionStatusSubject.next(ConnectionStatus.DISCONNECTED);
-    
-    // Keep the final completed state visible
-    console.log('✅ Progress tracking stopped - final state preserved');
   }
 
   /**
@@ -205,14 +198,7 @@ export class ProgressService {
       const progressEvent: ProgressEvent = JSON.parse(event.data);
       this.logDebug('Received progress event:', progressEvent);
       
-      // Add detailed logging to debug the processing
-      console.log('🔍 Processing event:', {
-        agent_name: progressEvent.agent_name,
-        event_type: progressEvent.event_type,
-        session_id: progressEvent.session_id,
-        timestamp: progressEvent.timestamp,
-        parent_agent: progressEvent.parent_agent
-      });
+
       
       this.processProgressEvent(progressEvent);
     } catch (error) {
@@ -265,19 +251,11 @@ export class ProgressService {
 
     // Skip connection and heartbeat events - these aren't actual agent progress
     if (event.event_type === 'connection' || event.event_type === 'heartbeat') {
-      console.log('⏭️ Skipping non-progress event:', event.event_type);
       return updatedState;
     }
 
     // Find or create agent
     let agent = this.findOrCreateAgent(updatedState.agents, event.agent_name, event.parent_agent);
-
-    console.log('🤖 Agent update:', {
-      agentName: event.agent_name,
-      eventType: event.event_type,
-      previousStatus: agent.status,
-      parentAgent: event.parent_agent
-    });
 
     // Update agent based on event type - follow backend events exactly
     switch (event.event_type) {
@@ -302,26 +280,17 @@ export class ProgressService {
         break;
     }
 
-    console.log('🤖 Agent after update:', {
-      agentName: agent.name,
-      status: agent.status,
-      progress: agent.progress
-    });
+
 
     // Update overall progress
     updatedState.overallProgress = this.calculateOverallProgress(updatedState.agents);
     updatedState.refinementIterations = this.countRefinementIterations(updatedState.agents);
     updatedState.isComplete = this.areAllAgentsComplete(updatedState.agents);
 
-    console.log('📈 State updated:', {
-      overallProgress: updatedState.overallProgress,
-      agentCount: updatedState.agents.length,
-      isComplete: updatedState.isComplete
-    });
+
 
     // Auto-stop progress tracking when all agents are complete
     if (updatedState.isComplete && updatedState.agents.length > 0) {
-      console.log('🎉 All agents complete! Auto-stopping progress tracking in 5 seconds...');
       updatedState.endTime = new Date(); // Mark completion time
       setTimeout(() => {
         // Don't reset state - just stop SSE connection but preserve final state
@@ -391,23 +360,14 @@ export class ProgressService {
 
   private calculateOverallProgress(agents: AgentStatus[]): number {
     if (agents.length === 0) {
-      console.log('📊 Overall progress: 0% (no agents)');
       return 0;
     }
 
     const totalAgents = this.countTotalAgents(agents);
     const completedAgents = this.countCompletedAgents(agents);
-    const runningAgents = this.countRunningAgents(agents);
     
     // Progress based ONLY on completed agents - no partial credit for running
     const progress = (completedAgents / totalAgents) * 100;
-    
-    console.log('📊 Progress calculation:', {
-      totalAgents,
-      completedAgents,
-      runningAgents,
-      progress: Math.round(progress)
-    });
     
     return Math.round(progress);
   }
@@ -476,7 +436,7 @@ export class ProgressService {
 
   private logDebug(...args: any[]): void {
     if (this.config.debug) {
-      console.log('[ProgressService]', ...args);
+      // Only log if debug mode is explicitly enabled
     }
   }
 

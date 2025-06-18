@@ -1910,36 +1910,5 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
-  testProgressTracking() {
-    console.log('🧪 Testing progress tracking...');
-    const testSessionId = 'test_' + Date.now();
-    
-    // Start progress tracking
-    this.progressService.startProgressStream(testSessionId);
-    
-    // Add debugging
-    this.progressService.connectionStatus$.subscribe(status => {
-      console.log('🧪 Test - Connection status:', status);
-    });
-    
-    this.progressService.progressEvents$.subscribe(events => {
-      console.log('🧪 Test - Progress events:', events.length, events);
-    });
-    
-    // Test backend endpoint if you added it
-    this.http.post(`http://localhost:8080/test-progress/${testSessionId}`, {}).subscribe({
-      next: (response) => {
-        console.log('🧪 Test endpoint response:', response);
-      },
-      error: (error) => {
-        console.log('🧪 Test endpoint not available (add it to backend):', error);
-      }
-    });
-    
-    // Stop after 30 seconds
-    setTimeout(() => {
-      this.progressService.stopProgressStream();
-      console.log('🧪 Test completed');
-    }, 30000);
-  }
+
 }
