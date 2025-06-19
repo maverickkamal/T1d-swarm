@@ -4,7 +4,8 @@ import { AccessControlService } from '../../core/services/access-control.service
 @Component({
   selector: 'app-access-prompt',
   templateUrl: './access-prompt.component.html',
-  styleUrls: ['./access-prompt.component.scss']
+  styleUrls: ['./access-prompt.component.scss'],
+  standalone: false
 })
 export class AccessPromptComponent {
   judgeCode: string = '';

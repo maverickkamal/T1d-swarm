@@ -37,10 +37,9 @@ import {SessionService} from './core/services/session.service';
 import {VideoService} from './core/services/video.service';
 import {WebSocketService} from './core/services/websocket.service';
 import {AccessControlService} from './core/services/access-control.service';
-import {AccessPromptComponent} from './components/access-prompt/access-prompt.component';
 
 @NgModule({
-  declarations: [AppComponent, AccessPromptComponent],
+  declarations: [AppComponent],
   imports: [
     ComponentModule,
     BrowserModule,
