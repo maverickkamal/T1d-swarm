@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import {Component} from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {RouterOutlet} from '@angular/router';
 import {SessionService} from './core/services/session.service';
+import {AccessControlService, AccessLevel} from './core/services/access-control.service';
 
 @Component({
   selector: 'app-root',
@@ -24,11 +25,18 @@ import {SessionService} from './core/services/session.service';
   styleUrl: './app.component.scss',
   standalone: false,
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'agent_framework_web';
   userId: string = '';
   appName: string = '';
   sessionId: string = '';
+  accessLevel: AccessLevel = null;
 
-  constructor() {}
+  constructor(private accessService: AccessControlService) {}
+
+  ngOnInit(): void {
+    this.accessService.accessLevel$.subscribe(level => {
+      this.accessLevel = level;
+    });
+  }
 }

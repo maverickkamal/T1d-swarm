@@ -14,4 +14,32 @@
  limitations under the License.
 -->
 
-<app-chat></app-chat>
+<!-- Access Control System -->
+<app-access-prompt *ngIf="accessLevel === null"></app-access-prompt>
+
+<!-- Blocked message -->
+<div *ngIf="accessLevel === 'blocked'" class="blocked-container">
+  <div class="blocked-message">
+    <h2>🔒 Demo Usage Limit Reached</h2>
+    <p>This demo has already been used on this device.</p>
+    <p>Please contact the organizers for judge access to continue.</p>
+    <div class="info-section">
+      <h4>Need Access?</h4>
+      <p>Contact the T1D-Swarm development team for a judge access code.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Main app with access level indicator -->
+<div *ngIf="accessLevel === 'demo' || accessLevel === 'judge'" class="main-app">
+  <!-- Status banner -->
+  <div *ngIf="accessLevel === 'demo'" class="demo-banner">
+    ⚠️ Demo Mode - Limited functionality for evaluation purposes
+  </div>
+  <div *ngIf="accessLevel === 'judge'" class="judge-banner">
+    ✅ Judge Access - All features enabled
+  </div>
+
+  <!-- Main application content -->
+  <app-chat></app-chat>
+</div>

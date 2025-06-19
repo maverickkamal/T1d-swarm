@@ -1,0 +1,49 @@
+<div class="overlay">
+  <div class="prompt-container">
+    <div class="header">
+      <h2>T1D-Swarm Access</h2>
+      <p class="subtitle">Proactive Micro-Insights Agent System</p>
+    </div>
+    
+    <div class="content">
+      <p class="description">
+        Enter a judge code for full access, or leave blank for demo mode (one-time use only)
+      </p>
+      
+      <div class="input-group">
+        <input 
+          type="text" 
+          [(ngModel)]="judgeCode"
+          placeholder="Judge code (optional)"
+          class="code-input"
+          (keyup)="onKeyPress($event)"
+          [disabled]="isLoading"
+        />
+        
+        <div *ngIf="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </div>
+      </div>
+      
+      <div class="actions">
+        <button 
+          (click)="handleSubmit()" 
+          class="continue-btn"
+          [disabled]="isLoading"
+        >
+          <span *ngIf="!isLoading">Continue</span>
+          <span *ngIf="isLoading" class="loading">
+            <i class="spinner"></i> Verifying...
+          </span>
+        </button>
+      </div>
+      
+      <div class="info">
+        <small>
+          <strong>Demo Mode:</strong> Limited to essential features for evaluation<br>
+          <strong>Judge Access:</strong> Full system capabilities
+        </small>
+      </div>
+    </div>
+  </div>
+</div> 
