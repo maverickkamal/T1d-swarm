@@ -21,9 +21,20 @@ class ScenarioDict(BaseModel):
     scenarios: str
 
 
-
 def generate_scenario():
-    """ Generates a random but realistic scenario sentence inspired by the real world."""
+    """
+    Generates a random but realistic scenario sentence inspired by the real world.
+    
+    Uses Google's Gemini API to create contextually appropriate T1D scenarios.
+    
+    Returns:
+        str: JSON string containing the generated scenario
+        
+    Raises:
+        ValueError: If scenario validation fails
+        
+    Time Complexity: O(1) - Single API call with fixed parameters
+    """
     response = client.models.generate_content(
         model=MODEL,
         config=types.GenerateContentConfig(
@@ -42,7 +53,23 @@ def generate_scenario():
         raise ValueError("Scenario validation failed.")
 
 def rephrase_custom_scenario(custom_text: str):
-    """Rephrase the custom text into a scenario sentence."""
+    """
+    Rephrase the custom text into a properly formatted scenario sentence.
+    
+    Takes user input and transforms it into a medically appropriate T1D scenario
+    using Google's Gemini API.
+    
+    Args:
+        custom_text (str): Raw user input describing their scenario
+        
+    Returns:
+        str: JSON string containing the rephrased scenario
+        
+    Raises:
+        ValueError: If scenario validation fails
+        
+    Time Complexity: O(1) - Single API call with fixed parameters
+    """
     response = client.models.generate_content(
         model=MODEL,
         config=types.GenerateContentConfig(
@@ -61,11 +88,11 @@ def rephrase_custom_scenario(custom_text: str):
         raise ValueError("Scenario validation failed.")
 
 
-
-
 # --- Robust Scenario Definitions ---
 # This dictionary holds the detailed scenario descriptions that will be fed
 # into your simulator agents. The keys are simple identifiers.
+# 
+# Design note: Using a dictionary for O(1) lookup time instead of iterating through lists
 
 SCENARIO_DETAILS_DB: Dict[str, Dict[str, str]] = {
     "stable_day": {
@@ -102,6 +129,10 @@ SCENARIO_DETAILS_DB: Dict[str, Dict[str, str]] = {
     }
 }
 
+# Performance optimization: Pre-compute scenario keys list to avoid O(n) conversion on each random call
+# Time Complexity: O(1) for random selection vs O(n) for list(dict.keys()) every time
+_SCENARIO_KEYS = list(SCENARIO_DETAILS_DB.keys())
+
 
 
 # --- Models for API ---
@@ -122,13 +153,29 @@ class ScenarioRequest(BaseModel):
 def get_scenario_details(scenario_id: str, custom_text: Optional[str] = None) -> Dict[str, str]:
     """
     Retrieves the detailed scenario descriptions based on the selected ID.
-
-    - If a specific ID is provided, it looks it up.
-    - If 'random' is provided, it picks one randomly.
-    - If 'custom' is provided, it calls the custom generation function.
+    
+    This function handles three types of scenario requests:
+    1. Specific scenario IDs from the predefined database
+    2. 'random' - randomly selects from available scenarios  
+    3. 'custom' - uses AI to rephrase user input into a medical scenario
+    
+    Args:
+        scenario_id (str): The scenario identifier ('random', 'custom', or predefined ID)
+        custom_text (Optional[str]): User text for custom scenarios
+        
+    Returns:
+        Dict[str, str]: Dictionary containing the scenario description
+        
+    Raises:
+        HTTPException: For invalid scenario IDs or missing custom text
+        
+    Time Complexity: 
+        - O(1) for predefined and random scenarios (dictionary lookup)
+        - O(1) for custom scenarios (single API call)
     """
     if scenario_id == "random":
-        random_id = random.choice(list(SCENARIO_DETAILS_DB.keys()))
+        # O(1) random selection using pre-computed keys list
+        random_id = random.choice(_SCENARIO_KEYS)
         details = SCENARIO_DETAILS_DB[random_id]
         return {
             "scenarios": details["scenario_description"]
@@ -137,11 +184,12 @@ def get_scenario_details(scenario_id: str, custom_text: Optional[str] = None) ->
     elif scenario_id == "custom":
         if not custom_text or not custom_text.strip():
             raise HTTPException(status_code=400, detail="Custom text must be provided for 'custom' scenario.")
-        # Call your pre-made function here
+        # Call AI rephrasing function - O(1) time complexity
         details = rephrase_custom_scenario(custom_text)
         return details
 
     elif scenario_id in SCENARIO_DETAILS_DB:
+        # O(1) dictionary lookup
         details = SCENARIO_DETAILS_DB[scenario_id]
         return {
             "scenarios": details["scenario_description"]
