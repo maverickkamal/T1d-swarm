@@ -22,22 +22,22 @@ Security Notes:
 """
 
 import os
-from typing import Dict, List
 import asyncio
-import json
-from datetime import datetime
+from dotenv import load_dotenv
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from google.adk.cli.fast_api import get_fast_api_app
 
+load_dotenv()
+
 
 # Import the global scenario management functions
 from t1d_swarm.agent import set_global_scenario, get_global_scenario
 from t1d_swarm.tools import *
 from t1d_swarm.progress_system import setup_progress_tracking, progress_tracker, real_agent_tracker
-from auth import verify_judge_code_endpoint, AuthResponse, JudgeCodeRequest
+from t1d_swarm.auth import verify_judge_code_endpoint, AuthResponse, JudgeCodeRequest
 
 # Global session state management
 # Thread-safe operations for concurrent session handling
