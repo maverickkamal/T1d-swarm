@@ -1,11 +1,14 @@
 import { Component, EventEmitter, Output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { AccessControlService } from '../../core/services/access-control.service';
 
 @Component({
   selector: 'app-access-prompt',
   templateUrl: './access-prompt.component.html',
   styleUrls: ['./access-prompt.component.scss'],
-  standalone: false
+  standalone: true,
+  imports: [CommonModule, FormsModule]
 })
 export class AccessPromptComponent {
   judgeCode: string = '';

@@ -18,6 +18,7 @@ import {Component, OnInit} from '@angular/core';
 import {RouterOutlet} from '@angular/router';
 import {SessionService} from './core/services/session.service';
 import {AccessControlService, AccessLevel} from './core/services/access-control.service';
+import {AccessPromptComponent} from './components/access-prompt/access-prompt.component';
 
 @Component({
   selector: 'app-root',
