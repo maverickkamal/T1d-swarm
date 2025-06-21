@@ -1,6 +1,5 @@
 import asyncio
-import inspect
-from typing import TYPE_CHECKING, Dict, Any, Optional
+from typing import TYPE_CHECKING
 from .tracker import AGENT_CONFIG, EventType
 
 if TYPE_CHECKING:
