@@ -1,7 +1,7 @@
-from typing import List, Optional, Union
+from typing import List
 from pydantic import BaseModel, Field
-import uuid # For generating unique forecast_id
-from datetime import datetime # For ISO 8601 timestamps
+import uuid 
+from datetime import datetime 
 import json
 
 from google.adk.agents.callback_context import ReadonlyContext

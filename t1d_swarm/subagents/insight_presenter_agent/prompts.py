@@ -1,4 +1,3 @@
-import json
 
 
 INSIGHT_PRESENTER_PROMPT = """You are a friendly and empathetic T1D AI assistant. Your goal is to present a clear and concise micro-insight to the user based on an internal risk forecast.
