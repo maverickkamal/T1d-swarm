@@ -35,6 +35,7 @@ import {ScenarioOption} from '../../core/models/types';
 import {AgentService} from '../../core/services/agent.service';
 import {ArtifactService} from '../../core/services/artifact.service';
 import {AudioService} from '../../core/services/audio.service';
+import {AuthService} from '../../core/services/auth.service';
 import {DownloadService} from '../../core/services/download.service';
 import {EvalService} from '../../core/services/eval.service';
 import {EventService} from '../../core/services/event.service';
@@ -163,7 +164,6 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   protected MediaType = MediaType;
 
   // Sync query params with value from agent picker.
-  private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
   protected readonly selectedAppControl = new FormControl<string>('', {
     nonNullable: true,
@@ -239,11 +239,16 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
   scenarioError = false;
   scenarioErrorMessage = '';
 
+  // Session tracking properties
+  sessionInfo: any = null;
+  showSessionWarning = false;
+
     constructor(
     private sanitizer: DomSanitizer,
     private sessionService: SessionService,
     private artifactService: ArtifactService,
     private audioService: AudioService,
+    private authService: AuthService,
     private webSocketService: WebSocketService,
     private videoService: VideoService,
     private dialog: MatDialog,
@@ -252,12 +257,20 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     private downloadService: DownloadService,
     private evalService: EvalService,
     private http: HttpClient,
-    private progressService: ProgressService
+    private progressService: ProgressService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.syncSelectedAppFromUrl();
     this.updateSelectedAppUrl();
+
+    // Subscribe to session info for authentication tracking
+    this.authService.sessionInfo$.subscribe(sessionInfo => {
+      this.sessionInfo = sessionInfo;
+      this.showSessionWarning = !!(sessionInfo && !sessionInfo.is_judge && (sessionInfo.sessions_remaining || 0) <= 1);
+      this.changeDetectorRef.detectChanges();
+    });
 
     this.webSocketService.onCloseReason().subscribe((closeReason) => {
       const error =
@@ -407,7 +420,16 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         this.changeDetectorRef.detectChanges();
       },
-      error: (err) => console.error('SSE error:', err),
+      error: (err) => {
+        console.error('SSE error:', err);
+        // Handle session limit exceeded (HTTP 429)
+        if (err.status === 429) {
+          this.openSnackBar('Session limit exceeded. Please get unlimited access with a judge code.', 'OK');
+          this.router.navigate(['/']);
+        } else {
+          this.openSnackBar('An error occurred while processing your request.', 'OK');
+        }
+      },
       complete: () => {
         this.streamingTextMessage = null;
         this.sessionTab.reloadSession(this.sessionId);
@@ -1910,5 +1932,26 @@ export class ChatComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
+  // Session status helper methods
+  getSessionStatusText(): string {
+    if (!this.sessionInfo) return '';
+    if (this.sessionInfo.is_judge) {
+      return '👑 Judge Access - Unlimited Sessions';
+    }
+    const remaining = this.sessionInfo.sessions_remaining || 0;
+    return `📊 Sessions Remaining: ${remaining}`;
+  }
 
+  getSessionStatusColor(): string {
+    if (!this.sessionInfo) return 'primary';
+    if (this.sessionInfo.is_judge) return 'primary';
+    const remaining = this.sessionInfo.sessions_remaining || 0;
+    if (remaining <= 0) return 'warn';
+    if (remaining <= 1) return 'accent';
+    return 'primary';
+  }
+
+  goToLandingPage(): void {
+    this.router.navigate(['/']);
+  }
 }
