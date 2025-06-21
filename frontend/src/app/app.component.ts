@@ -16,7 +16,6 @@
 
 import {Component} from '@angular/core';
 import {RouterOutlet} from '@angular/router';
-import {SessionService} from './core/services/session.service';
 
 @Component({
   selector: 'app-root',
@@ -25,10 +24,7 @@ import {SessionService} from './core/services/session.service';
   standalone: false,
 })
 export class AppComponent {
-  title = 'agent_framework_web';
-  userId: string = '';
-  appName: string = '';
-  sessionId: string = '';
+  title = 'T1D-Swarm';
 
   constructor() {}
 }

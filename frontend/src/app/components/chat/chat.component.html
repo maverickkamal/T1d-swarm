@@ -184,6 +184,23 @@
           <div style="display: flex;">
             <div class="toolbar-session-text">Session ID</div>
             <div class="toolbar-session-id">{{sessionId}}</div>
+            <!-- Session Status Display -->
+            @if (sessionInfo) {
+              <div style="display: flex; align-items: center; margin-left: 20px;">
+                <div class="session-status-badge" [ngStyle]="{'background-color': getSessionStatusColor() === 'warn' ? '#f44336' : getSessionStatusColor() === 'accent' ? '#ff9800' : '#2196f3'}">
+                  {{ getSessionStatusText() }}
+                </div>
+                @if (showSessionWarning) {
+                  <button 
+                    mat-button 
+                    color="primary" 
+                    (click)="goToLandingPage()"
+                    style="margin-left: 10px; font-size: 12px;">
+                    Get More Access
+                  </button>
+                }
+              </div>
+            }
           </div>
           <div class="toolbar-actions">
 
@@ -208,6 +225,26 @@
       </div>
     }
     <mat-card class="chat-card">
+      <!-- Session Warning Banner -->
+      @if (sessionInfo && showSessionWarning) {
+        <div style="background: linear-gradient(90deg, #ff9800, #f57c00); color: white; padding: 12px 20px; margin-bottom: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center;">
+            <mat-icon style="margin-right: 8px;">warning</mat-icon>
+            <span>
+              <strong>Session Warning:</strong> 
+              You have {{ sessionInfo.sessions_remaining }} session{{ sessionInfo.sessions_remaining !== 1 ? 's' : '' }} remaining.
+              {{ sessionInfo.sessions_remaining === 0 ? ' Get unlimited access with a judge code.' : '' }}
+            </span>
+          </div>
+          <button 
+            mat-button 
+            (click)="goToLandingPage()"
+            style="background: rgba(255,255,255,0.2); color: white; margin-left: 16px;">
+            Get More Access
+          </button>
+        </div>
+      }
+      
       @if (!selectedAppControl.value) {
         @if (isLoadingApps()) {
           <div class="empty-state-container">

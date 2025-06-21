@@ -17,12 +17,24 @@
 
 import {NgModule} from '@angular/core';
 import {RouterModule, Routes} from '@angular/router';
-import {AppComponent} from './app.component';
+import {ChatComponent} from './components/chat/chat.component';
+import {LandingPageComponent} from './components/landing-page/landing-page.component';
+import {AuthGuard} from './core/guards/auth.guard';
 
 const routes: Routes = [
   {
     path: '',
-    component: AppComponent,
+    component: LandingPageComponent,
+  },
+  {
+    path: 'chat',
+    component: ChatComponent,
+    canActivate: [AuthGuard]
+  },
+  // Redirect any other path to the landing page.
+  {
+    path: '**',
+    redirectTo: ''
   }
 ];
 

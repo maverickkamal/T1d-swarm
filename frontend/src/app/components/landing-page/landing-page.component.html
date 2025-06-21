@@ -1,0 +1,37 @@
+<div class="landing-container">
+  <div class="landing-box">
+    <div class="header">
+      <img src="assets/ADK-512-color.svg" width="48px" height="48px">
+      <h1>T1D-Swarm Access</h1>
+      <p>Please authenticate to continue</p>
+    </div>
+
+    <div *ngIf="message" class="message" [ngClass]="messageType">
+      {{ message }}
+    </div>
+
+    <div class="form-section">
+      <h3>Judge/Expert Access</h3>
+      <input 
+        type="password" 
+        [(ngModel)]="judgeCode"
+        (keyup.enter)="verifyJudgeCode()"
+        placeholder="Enter Judge Code">
+      <button (click)="verifyJudgeCode()" [disabled]="isVerifying">
+        {{ isVerifying ? 'Verifying...' : 'Verify Judge Code' }}
+      </button>
+    </div>
+
+    <div class="divider">OR</div>
+
+    <div class="form-section">
+      <h3>Guest Access</h3>
+      <p class="session-info">
+        You have <strong>{{ sessionsRemaining }}</strong> free session(s) remaining.
+      </p>
+      <button class="guest-btn" (click)="continueAsGuest()">
+        Continue as Guest
+      </button>
+    </div>
+  </div>
+</div> 

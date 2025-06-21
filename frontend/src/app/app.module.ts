@@ -36,6 +36,9 @@ import {EventService} from './core/services/event.service';
 import {SessionService} from './core/services/session.service';
 import {VideoService} from './core/services/video.service';
 import {WebSocketService} from './core/services/websocket.service';
+import {AuthService} from './core/services/auth.service';
+import {AuthGuard} from './core/guards/auth.guard';
+import { LandingPageComponent } from './components/landing-page/landing-page.component';
 
 @NgModule({
   declarations: [AppComponent],
@@ -49,6 +52,7 @@ import {WebSocketService} from './core/services/websocket.service';
     MatFormFieldModule,
     MatButtonModule,
     BrowserAnimationsModule,
+    LandingPageComponent,
   ],
   providers: [
     SessionService,
@@ -60,6 +64,8 @@ import {WebSocketService} from './core/services/websocket.service';
     EvalService,
     ArtifactService,
     DownloadService,
+    AuthService,
+    AuthGuard,
   ],
   bootstrap: [AppComponent],
 })

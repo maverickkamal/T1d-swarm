@@ -21,12 +21,14 @@ import {AppModule} from './app/app.module';
 fetch('./assets/config/runtime-config.json')
   .then((response) => response.json())
   .then((config) => {
+    console.log('Runtime config loaded:', config);
     (window as any)['runtimeConfig'] = config;
-    platformBrowserDynamic()
-      .bootstrapModule(AppModule)
-      .catch((err) => console.error(err));
-  });
-
-platformBrowserDynamic()
-  .bootstrapModule(AppModule)
-  .catch((err) => console.error(err));
+    return platformBrowserDynamic().bootstrapModule(AppModule);
+  })
+  .catch((err) => {
+    console.error('Failed to load runtime config, using defaults:', err);
+    // Fallback: set default config if loading fails
+    (window as any)['runtimeConfig'] = { backendUrl: 'http://localhost:8080' };
+    return platformBrowserDynamic().bootstrapModule(AppModule);
+  })
+  .catch((err) => console.error('Bootstrap failed:', err));
