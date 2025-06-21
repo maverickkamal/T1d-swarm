@@ -3,7 +3,6 @@ import json
 from datetime import datetime
 from typing import Dict, Optional, Any, Union
 from dataclasses import dataclass
-from collections import deque
 
 @dataclass
 class ProgressEvent:
