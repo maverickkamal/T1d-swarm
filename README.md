@@ -31,6 +31,8 @@ The system analyzes a continuous stream of simulated health data—glucose, meal
 
 - **🎲 Dynamic Scenario Simulation**: The entire workflow is fed by an AI-powered scenario generator that creates dynamic and realistic T1D situations, including edge cases and contradictory data, to thoroughly test the swarm's intelligence.
 
+- **⚙️ Custom Control Flow & Parsing**: To power our refinement loop, we built the `ConfidenceCheckAgent` from the ground up as a custom BaseAgent. This agent implements unique logic to robustly parse JSON from complex LLM outputs—solving a common tool-use challenge—and intelligently control the loop's execution, ensuring a reliable workflow.
+
 ## 🏗️ Technical Architecture
 
 Our architecture is designed in three distinct phases, managed by a top-level `T1dInsightOrchestratorAgent`.
@@ -138,7 +140,7 @@ graph TD
 | **LoopRefinementAgent** | `LoopAgent` | Encapsulates and manages the iterative verification and refinement process |
 | **GlycemicRiskForecasterAgent** | `LlmAgent` | The core analytical agent that generates the initial (and refined) risk forecast |
 | **ForecastVerifierAgent** | `LlmAgent with Tools` | Critically assesses the Brain's forecast against the original data and grounded knowledge |
-| **ConfidenceCheckAgent** | `Custom BaseAgent` | A custom-built agent that parses the verifier's output and determines if the loop should continue or exit |
+| **ConfidenceCheckAgent** | `Custom BaseAgent` | Built from scratch, this critical agent uses a custom utility to robustly parse JSON from the verifier's free-text output. It then implements the core logic to check the confidence score and decide whether to continue the refinement loop or exit, acting as the intelligent gatekeeper for the entire verification process. |
 | **InsightPresenterAgent** | `LlmAgent` | Takes the final, verified forecast and presents it to the user in a clear, empathetic manner |
 
 ## 🛠️ Key Technologies
@@ -244,13 +246,13 @@ python -c "import google.adk; print('ADK imported successfully')"
 
 ### Option 1: Web API Server (Recommended)
 
-Start the FastAPI server for full functionality including web interface:
+The primary way to run the application is via the main.py script, which is configured to launch a Uvicorn server:
 
 ```bash
 python main.py
 ```
 
-Or alternatively:
+Alternatively, for development purposes, you can run Uvicorn directly with auto-reload:
 
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8080

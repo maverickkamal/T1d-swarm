@@ -103,6 +103,11 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
 .venv
 env/
 venv/
@@ -130,9 +135,36 @@ dmypy.json
 
 # Project specific
 sessions.db
+auth_sessions.db
 *.db
 .vscode/
 .DS_Store
+
+# Cloud Run deployment
+.gcloudignore
+service-account-key.json
+*.key
+*.pem
+*.crt
+
+# IDE and editor files
+.idea/
+*.swp
+*.swo
+*~
+
+
+# Deployment scripts now read from .env (safe to commit)
+# *.bat
+# deploy.sh
+# test-*.sh
+# *.yaml
+*_test.md
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Conda
 .conda/ 

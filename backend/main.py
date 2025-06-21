@@ -37,7 +37,14 @@ load_dotenv()
 from t1d_swarm.agent import set_global_scenario, get_global_scenario
 from t1d_swarm.tools import *
 from t1d_swarm.progress_system import setup_progress_tracking, progress_tracker, real_agent_tracker
-from t1d_swarm.auth import verify_judge_code_endpoint, AuthResponse, JudgeCodeRequest
+from t1d_swarm.auth import (
+    verify_judge_code_endpoint, 
+    AuthResponse, 
+    JudgeCodeRequest,
+    check_access_middleware,
+    check_session_limit,
+    get_device_fingerprint
+)
 
 # Global session state management
 # Thread-safe operations for concurrent session handling
@@ -76,7 +83,7 @@ AGENT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 # Example session DB URL (e.g., SQLite)
 SESSION_DB_URL = "sqlite:///./sessions.db"
 # Example allowed origins for CORS
-ALLOWED_ORIGINS = ["http://localhost", "http://localhost:8080", "*"]
+ALLOWED_ORIGINS = ["http://localhost:4200"]
 # Set web=True if you intend to serve a web interface, False otherwise
 SERVE_WEB_INTERFACE = False
 
@@ -93,10 +100,14 @@ JUDGE_CODES = os.getenv("JUDGE_CODES", "").split(",")
 # ENABLE PROGRESS TRACKING
 progress_tracker, real_agent_tracker = setup_progress_tracking(app)
 
-# Simple middleware for session tracking 
+# Enhanced middleware for session tracking + auth
 @app.middleware("http")
 async def session_middleware(request, call_next):
-    """Extract session ID for progress tracking"""
+    """Extract session ID for progress tracking + check session limits"""
+    # Check session limits first (this will raise HTTPException if needed)
+    check_access_middleware(request)
+    
+    # Continue with existing session tracking logic
     session_id = None
     path_parts = str(request.url.path).split('/')
     
@@ -137,6 +148,20 @@ async def stream_agent_progress(session_id: str):
 async def verify_judge(request: JudgeCodeRequest, req: Request):
     """Verify judge access code for T1D-Swarm access control"""
     return await verify_judge_code_endpoint(request, req)
+
+@app.get("/api/check-access")
+async def check_access_status(request: Request):
+    """Check current session limit status for the device"""
+    can_access, message, sessions_remaining = check_session_limit(request)
+    device_id = get_device_fingerprint(request)
+    
+    return {
+        "can_access": can_access,
+        "message": message,
+        "sessions_remaining": sessions_remaining,
+        "device_id": device_id[:8] + "...",  # Show partial ID for debugging
+        "is_judge": sessions_remaining == -1
+    }
 
 @app.post("/get-scenario/")
 async def get_scenario_from_frontend(scenario_data: ScenarioRequest):
@@ -220,6 +245,17 @@ async def list_available_scenarios():
     options.append({"id": "random", "display_name": "🎲 Random Scenario"})
     options.append({"id": "custom", "display_name": "✍️ Custom Scenario (AI Generated)"})
     return options
+
+@app.get("/api/debug-judge-codes")
+async def debug_judge_codes():
+    """Debug endpoint to check loaded judge codes"""
+    from t1d_swarm.auth import JUDGE_CODES
+    return {
+        "judge_codes": JUDGE_CODES,
+        "judge_codes_count": len(JUDGE_CODES),
+        "env_raw": os.getenv("JUDGE_CODES", "NOT_SET")
+    }
+
 # You can add more FastAPI routes or configurations below if needed.
 
 if __name__ == "__main__":
