@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
-import json
 
 # --- Pydantic Schema for CGMDataOutput ---
 # This is what the Simulated_CGM_Feed_Agent will output.
