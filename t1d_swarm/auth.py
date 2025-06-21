@@ -5,7 +5,6 @@ Add this to your existing FastAPI backend
 
 import os
 import logging
-from typing import Dict, Any
 from fastapi import HTTPException, Request
 from pydantic import BaseModel
 from dotenv import load_dotenv
