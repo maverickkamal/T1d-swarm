@@ -176,8 +176,25 @@ cd T1d-swarm
 Create the conda environment from the provided configuration:
 
 ```bash
-conda env create -f environment.yml
-conda activate t1d-insights-env
+conda env update -f environment.yml
+```
+or 
+
+### 2.1 Use Virtual environment
+
+```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+
+# On macOS/Linux:
+source .venv/bin/activate
+
+# Install requirements
+pip install -r requirements.txt
 ```
 
 ### 3. Google Cloud Authentication
@@ -236,13 +253,6 @@ The server will start at `http://localhost:8080`
 - **Scenario Management**: `http://localhost:8080/scenarios`
 - **Agent Execution**: Via Google ADK endpoints
 
-### Option 2: Direct Agent Execution
-
-Run the orchestrator agent directly:
-
-```bash
-python -m t1d_swarm.agent
-```
 
 ## 📡 API Usage
 
