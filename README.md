@@ -144,7 +144,7 @@ graph TD
 ## 🛠️ Key Technologies
 
 - **Primary Language**: Python 3.12+
-- **AI Framework**: Google Agent Development Kit (ADK)
+- **Agent Framework**: Google Agent Development Kit (ADK)
 - **LLM**: Google Gemini API
 - **API/Web Interface**: FastAPI, Uvicorn
 - **Data Validation**: Pydantic
@@ -167,7 +167,7 @@ Before setting up Glycemic Sentinel, ensure you have:
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/maverickkamal/T1d-swarm.git
 cd T1d-swarm
 ```
 
@@ -215,10 +215,22 @@ Create a `.env` file in the root directory:
 
 ```bash
 # .env file
+GOOGLE_GENAI_USE_VERTEXAI=true
 GOOGLE_CLOUD_PROJECT=your-project-id
-JUDGE_CODES=code1,code2,code3  # Optional: for access control
+GOOGLE_CLOUD_LOCATION=location
+GENERATE_SCENARIO_MODEL=gemini-2.5-flash-lite-preview-06-17
+AMBIENT_CONTEXT_MODEL=gemini-2.0-flash
+SIMULATED_CGM_MODEL=gemini-2.0-flash
+GLYCEMIC_FORECAST_MODEL=gemini-2.5-pro
+FORECAST_VERIFIER_MODEL=gemini-2.5-flash
+INSIGHT_PRESENTER_MODEL=gemini-2.5-flash
+JUDGE_CODES=code1, code2, code3 # optional
 PORT=8080  # Optional: defaults to 8080
 ```
+
+You can easily change the models to any gemini models. 
+Other llms could be used from litellm tho further configurations are needed. 
+For that, refer to [ADK Documentation](https://google.github.io/adk-docs/agents/models/)
 
 ### 5. Verify Installation
 
@@ -399,7 +411,7 @@ Adapting this robust multi-agent, self-refining framework to assist in managing 
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our contributing guidelines and feel free to submit issues or pull requests.
+We welcome contributions! Please feel free to submit issues or pull requests.
 
 ## 📄 License
 
@@ -410,7 +422,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built with Google's Agent Development Kit (ADK)
 - Powered by Google Gemini API
 - Inspired by the T1D community's need for proactive care
-- Special thanks to the healthcare professionals who provided domain expertise
+- Built for the purpose of entering the ADK hackathon
 
 ---
 
