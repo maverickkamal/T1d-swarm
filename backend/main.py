@@ -37,14 +37,7 @@ load_dotenv()
 from t1d_swarm.agent import set_global_scenario, get_global_scenario
 from t1d_swarm.tools import *
 from t1d_swarm.progress_system import setup_progress_tracking, progress_tracker, real_agent_tracker
-from t1d_swarm.auth import (
-    verify_judge_code_endpoint, 
-    AuthResponse, 
-    JudgeCodeRequest,
-    check_access_middleware,
-    check_session_limit,
-    get_device_fingerprint
-)
+from t1d_swarm.auth import check_access_middleware
 
 # Global session state management
 # Thread-safe operations for concurrent session handling
@@ -144,24 +137,6 @@ async def stream_agent_progress(session_id: str):
     )
 
 
-@app.post("/api/verify-judge", response_model=AuthResponse)
-async def verify_judge(request: JudgeCodeRequest, req: Request):
-    """Verify judge access code for T1D-Swarm access control"""
-    return await verify_judge_code_endpoint(request, req)
-
-@app.get("/api/check-access")
-async def check_access_status(request: Request):
-    """Check current session limit status for the device"""
-    can_access, message, sessions_remaining = check_session_limit(request)
-    device_id = get_device_fingerprint(request)
-    
-    return {
-        "can_access": can_access,
-        "message": message,
-        "sessions_remaining": sessions_remaining,
-        "device_id": device_id[:8] + "...",  # Show partial ID for debugging
-        "is_judge": sessions_remaining == -1
-    }
 
 @app.post("/get-scenario/")
 async def get_scenario_from_frontend(scenario_data: ScenarioRequest):
@@ -246,15 +221,7 @@ async def list_available_scenarios():
     options.append({"id": "custom", "display_name": "✍️ Custom Scenario (AI Generated)"})
     return options
 
-@app.get("/api/debug-judge-codes")
-async def debug_judge_codes():
-    """Debug endpoint to check loaded judge codes"""
-    from t1d_swarm.auth import JUDGE_CODES
-    return {
-        "judge_codes": JUDGE_CODES,
-        "judge_codes_count": len(JUDGE_CODES),
-        "env_raw": os.getenv("JUDGE_CODES", "NOT_SET")
-    }
+
 
 # You can add more FastAPI routes or configurations below if needed.
 
