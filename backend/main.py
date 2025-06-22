@@ -26,7 +26,7 @@ import asyncio
 from dotenv import load_dotenv
 
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from google.adk.cli.fast_api import get_fast_api_app
 
@@ -37,7 +37,7 @@ load_dotenv()
 from t1d_swarm.agent import set_global_scenario, get_global_scenario
 from t1d_swarm.tools import *
 from t1d_swarm.progress_system import setup_progress_tracking, progress_tracker, real_agent_tracker
-from t1d_swarm.auth import check_access_middleware
+
 
 # Global session state management
 # Thread-safe operations for concurrent session handling
@@ -94,13 +94,10 @@ JUDGE_CODES = os.getenv("JUDGE_CODES", "").split(",")
 progress_tracker, real_agent_tracker = setup_progress_tracking(app)
 
 # Enhanced middleware for session tracking + auth
+# Simple middleware for session tracking 
 @app.middleware("http")
 async def session_middleware(request, call_next):
-    """Extract session ID for progress tracking + check session limits"""
-    # Check session limits first (this will raise HTTPException if needed)
-    check_access_middleware(request)
-    
-    # Continue with existing session tracking logic
+    """Extract session ID for progress tracking"""
     session_id = None
     path_parts = str(request.url.path).split('/')
     
