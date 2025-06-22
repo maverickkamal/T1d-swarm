@@ -66,12 +66,15 @@ graph TD
         S_SCENARIO["state['scenario']"]:::data
         S_CGM["state['cgm_data']"]:::data
         S_CTX["state['context_event']"]:::data
+        Gemini["Gemini API"]:::external
 
         AI_SCENARIO -- "Writes to" --> S_SCENARIO
         S_SCENARIO -- "Input to" --> B
         S_SCENARIO -- "Input to" --> C
         B -- "Writes to" --> S_CGM
         C -- "Writes to" --> S_CTX
+        B -- "Uses" --> Gemini
+        C -- "Uses" --> Gemini
     end
 
     %% === PHASE 2: Refinement & Verification Loop ===
@@ -87,7 +90,6 @@ graph TD
 
         S_RF["state['current_risk_forecast']"]:::data
         S_VERIFY["state['verification_output']"]:::data
-        Gemini["Gemini API"]:::external
         SearchTool["Grounding Tool"]:::external
         
         LOOP_START --> D
@@ -101,6 +103,7 @@ graph TD
         S_CTX --> F
         F -- "Uses" --> SearchTool
         F -- "Writes to" --> S_VERIFY
+        F -- "Uses" --> Gemini
 
         S_VERIFY --> G
 
@@ -116,6 +119,7 @@ graph TD
         E["Insight_Presenter_Agent<br>(LlmAgent)"]:::presenter
         FinalOutput["User-Facing Insight<br>(Console/UI)"]:::process
         E --> FinalOutput
+        E -- "Uses" --> Gemini
     end
 
     %% === Overall Flow Connections ===
