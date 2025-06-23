@@ -36,11 +36,6 @@ if (-not $PROJECT_ID) {
     exit 1
 }
 
-if (-not $envVars["JUDGE_CODES"]) {
-    Write-Host "❌ JUDGE_CODES not found in ../.env file" -ForegroundColor Red
-    exit 1
-}
-
 Write-Host "Project ID: $PROJECT_ID" -ForegroundColor Yellow
 Write-Host "Region: $REGION" -ForegroundColor Yellow
 Write-Host "Running from: backend\ directory" -ForegroundColor Yellow
@@ -85,7 +80,7 @@ $deployArgs = @(
     "--allow-unauthenticated",
     "--memory=2Gi",
     "--cpu=2",
-    "--max-instances=10",
+    "--max-instances=5",
     "--port=8080",
     "--set-env-vars=GOOGLE_GENAI_USE_VERTEXAI=$($envVars['GOOGLE_GENAI_USE_VERTEXAI'])",
     "--set-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID",
@@ -96,7 +91,6 @@ $deployArgs = @(
     "--set-env-vars=GLYCEMIC_FORECAST_MODEL=$($envVars['GLYCEMIC_FORECAST_MODEL'])",
     "--set-env-vars=FORECAST_VERIFIER_MODEL=$($envVars['FORECAST_VERIFIER_MODEL'])",
     "--set-env-vars=INSIGHT_PRESENTER_MODEL=$($envVars['INSIGHT_PRESENTER_MODEL'])",
-    "--set-env-vars=JUDGE_CODES=$($envVars['JUDGE_CODES'])",
     "--set-env-vars=ENVIRONMENT=production"
 )
 
@@ -120,7 +114,6 @@ Write-Host ""
 Write-Host "🔐 Environment Variables Deployed:" -ForegroundColor Blue
 Write-Host "• Project: $PROJECT_ID" -ForegroundColor Yellow
 Write-Host "• Region: $REGION" -ForegroundColor Yellow
-Write-Host "• Judge Codes: [HIDDEN FOR SECURITY]" -ForegroundColor Yellow
 Write-Host "• AI Models: $($envVars['GENERATE_SCENARIO_MODEL']), $($envVars['AMBIENT_CONTEXT_MODEL']), etc." -ForegroundColor Yellow
 Write-Host ""
 

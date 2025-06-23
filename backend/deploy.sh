@@ -35,11 +35,6 @@ if [ -z "$PROJECT_ID" ]; then
     exit 1
 fi
 
-if [ -z "$JUDGE_CODES" ]; then
-    echo -e "${RED}❌ JUDGE_CODES not found in ../.env file${NC}"
-    exit 1
-fi
-
 echo -e "${BLUE}🚀 Starting T1D-Swarm deployment to Cloud Run${NC}"
 echo -e "${YELLOW}Project ID: $PROJECT_ID${NC}"
 echo -e "${YELLOW}Region: $REGION${NC}"
@@ -92,7 +87,6 @@ gcloud run deploy $SERVICE_NAME \
     --set-env-vars "GLYCEMIC_FORECAST_MODEL=${GLYCEMIC_FORECAST_MODEL}" \
     --set-env-vars "FORECAST_VERIFIER_MODEL=${FORECAST_VERIFIER_MODEL}" \
     --set-env-vars "INSIGHT_PRESENTER_MODEL=${INSIGHT_PRESENTER_MODEL}" \
-    --set-env-vars "JUDGE_CODES=$JUDGE_CODES" \
     --set-env-vars "ENVIRONMENT=production"
 
 # Get the service URL
@@ -108,7 +102,6 @@ echo
 echo -e "${BLUE}🔐 Environment Variables Deployed:${NC}"
 echo -e "${YELLOW}• Project: $PROJECT_ID${NC}"
 echo -e "${YELLOW}• Region: $REGION${NC}"
-echo -e "${YELLOW}• Judge Codes: [HIDDEN FOR SECURITY]${NC}"
 echo -e "${YELLOW}• AI Models: ${GENERATE_SCENARIO_MODEL}, ${AMBIENT_CONTEXT_MODEL}, etc.${NC}"
 
 # Optional: Show logs

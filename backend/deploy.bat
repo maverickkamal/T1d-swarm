@@ -38,10 +38,6 @@ if "%PROJECT_ID%"=="" (
     exit /b 1
 )
 
-if "%JUDGE_CODES%"=="" (
-    echo ❌ JUDGE_CODES not found in ../.env file
-    exit /b 1
-)
 
 echo Project ID: %PROJECT_ID%
 echo Region: %REGION%
@@ -95,7 +91,6 @@ gcloud run deploy t1d-swarm ^
     --set-env-vars "GLYCEMIC_FORECAST_MODEL=%GLYCEMIC_FORECAST_MODEL%" ^
     --set-env-vars "FORECAST_VERIFIER_MODEL=%FORECAST_VERIFIER_MODEL%" ^
     --set-env-vars "INSIGHT_PRESENTER_MODEL=%INSIGHT_PRESENTER_MODEL%" ^
-    --set-env-vars "JUDGE_CODES=%JUDGE_CODES%" ^
     --set-env-vars "ENVIRONMENT=production"
 
 if %errorlevel% neq 0 (
@@ -116,7 +111,6 @@ echo.
 echo 🔐 Environment Variables Deployed:
 echo • Project: %PROJECT_ID%
 echo • Region: %REGION%
-echo • Judge Codes: [HIDDEN FOR SECURITY]
 echo • AI Models: %GENERATE_SCENARIO_MODEL%, %AMBIENT_CONTEXT_MODEL%, etc.
 echo.
 
