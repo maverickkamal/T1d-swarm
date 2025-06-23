@@ -5,11 +5,20 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "clean-config": "node clean-backend.js",
     "inject-backend": "node set-backend.js",
-    "serve": "npm run clean-config && npm run inject-backend && ng serve"
+    "serve": "npm run clean-config && npm run inject-backend && ng serve",
+    "docker:build": "docker build -t adk-frontend .",
+    "docker:run": "docker run -p 8080:8080 -e BACKEND_URL=http://localhost:8000 adk-frontend",
+    "cloud:deploy": "./deploy.sh",
+    "cloud:deploy:win": "deploy.bat",
+    "cloud:deploy:env": "deploy-with-env.bat",
+    "cloud:deploy:ps": "powershell -ExecutionPolicy Bypass -File deploy-with-env.ps1",
+    "cloud:deploy:cb": "deploy-cloud-build.bat",
+    "cloud:build": "gcloud builds submit --config cloudbuild.yaml"
   },
   "private": true,
   "dependencies": {

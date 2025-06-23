@@ -25,8 +25,11 @@ fetch('./assets/config/runtime-config.json')
     platformBrowserDynamic()
       .bootstrapModule(AppModule)
       .catch((err) => console.error(err));
+  })
+  .catch((err) => {
+    console.error('Failed to load runtime config:', err);
+    // Fallback: bootstrap without config
+    platformBrowserDynamic()
+      .bootstrapModule(AppModule)
+      .catch((err) => console.error(err));
   });
-
-platformBrowserDynamic()
-  .bootstrapModule(AppModule)
-  .catch((err) => console.error(err));

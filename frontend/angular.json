@@ -65,10 +65,6 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
-          "options": {
-            "host": "0.0.0.0",
-            "port": 8080
-          },
           "configurations": {
             "production": {
               "buildTarget": "agent_framework_web:build:production"
