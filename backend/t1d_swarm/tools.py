@@ -14,6 +14,7 @@ from .prompt import *
 load_dotenv()
 
 MODEL = os.getenv("GENERATE_SCENARIO_MODEL")
+print(f"Using model: {MODEL}")
 
 client = genai.Client(http_options=HttpOptions(api_version="v1"))
 

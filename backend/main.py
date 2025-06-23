@@ -89,7 +89,6 @@ app: FastAPI = get_fast_api_app(
     web=SERVE_WEB_INTERFACE,
 )
 
-JUDGE_CODES = os.getenv("JUDGE_CODES", "").split(",")
 # ENABLE PROGRESS TRACKING
 progress_tracker, real_agent_tracker = setup_progress_tracking(app)
 
