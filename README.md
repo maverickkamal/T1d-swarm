@@ -224,13 +224,12 @@ Create a `.env` file in the root directory:
 GOOGLE_GENAI_USE_VERTEXAI=true
 GOOGLE_CLOUD_PROJECT=your-project-id
 GOOGLE_CLOUD_LOCATION=location
-GENERATE_SCENARIO_MODEL=gemini-2.5-flash-lite-preview-06-17
+GENERATE_SCENARIO_MODEL=gemini-2.0-flash
 AMBIENT_CONTEXT_MODEL=gemini-2.0-flash
 SIMULATED_CGM_MODEL=gemini-2.0-flash
 GLYCEMIC_FORECAST_MODEL=gemini-2.5-pro
 FORECAST_VERIFIER_MODEL=gemini-2.5-flash
 INSIGHT_PRESENTER_MODEL=gemini-2.5-flash
-JUDGE_CODES=code1, code2, code3 # optional
 PORT=8080  # Optional: defaults to 8080
 ```
 
@@ -319,7 +318,6 @@ The system includes several predefined scenarios:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `GOOGLE_CLOUD_PROJECT` | Your Google Cloud project ID | Required |
-| `JUDGE_CODES` | Comma-separated access codes | Optional |
 | `PORT` | Server port | `8080` |
 
 ### Session Management
