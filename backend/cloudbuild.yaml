@@ -30,20 +30,23 @@ steps:
       - '--allow-unauthenticated'
       - '--memory=2Gi'
       - '--cpu=2'
-      - '--max-instances=10'
+      - '--max-instances=5'
       - '--port=8080'
       - '--set-env-vars=GOOGLE_GENAI_USE_VERTEXAI=true'
       - '--set-env-vars=GOOGLE_CLOUD_PROJECT=$PROJECT_ID'
       - '--set-env-vars=GOOGLE_CLOUD_LOCATION=us-central1'
       - '--set-env-vars=ENVIRONMENT=production'
-      # Note: JUDGE_CODES and other sensitive vars should be set manually
+      - '--set-env-vars=GENERATE_SCENARIO_MODEL=gemini-1.5-flash'
+      - '--set-env-vars=SIMULATED_CGM_MODEL=gemini-1.5-flash'
+      - '--set-env-vars=GLYCEMIC_FORECAST_MODEL=gemini-1.5-flash'
+      - '--set-env-vars=FORECAST_VERIFIER_MODEL=gemini-1.5-flash'
+      - '--set-env-vars=INSIGHT_PRESENTER_MODEL=gemini-1.5-flash'
+      - '--set-env-vars=AMBIENT_CONTEXT_MODEL=gemini-1.5-flash'
+      # Note: sensitive vars should be set manually
       # or through Secret Manager for security
     id: 'deploy-service'
 
-# Substitutions for environment variables
-substitutions:
-  _REGION: 'us-central1'
-  _SERVICE_NAME: 't1d-swarm'
+# Substitutions removed - values are hardcoded in the template
 
 # Options
 options:
