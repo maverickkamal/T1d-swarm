@@ -24,6 +24,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the application code
 COPY . .
 
+# Create the eval set directory that Google ADK expects
+RUN mkdir -p /app/t1d-swarm-demo
+
 # Create a non-root user for security
 RUN adduser --disabled-password --gecos '' --uid 1000 appuser && \
     chown -R appuser:appuser /app
