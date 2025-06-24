@@ -1,0 +1,585 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<mat-drawer-container class="drawer-container" autosize>
+  @if (!showSidePanel) {
+    <span class="material-symbols-outlined"
+      style="position: absolute;width: 24px;height: 24px;color: #C4C7C5;cursor: pointer; margin-left: 20px;margin-top: 20px;"
+      matTooltip="Open panel"
+    (click)="toggleSidePanel()">left_panel_open</span>
+  }
+  <mat-drawer class="side-drawer" #sideDrawer mode="side" appResizableDrawer>
+    <div style="margin-top:20px; margin-left:20px; display:flex;">
+      <div style="width: 100%">
+        <div class="drawer-header">
+          <div class="drawer-logo">
+            <img src="assets/sentinel_swarm.svg" width="32px" height="32px">
+            Glycemic Sentinel
+          </div>
+          <span class="material-symbols-outlined"
+            style="color: #C4C7C5;cursor: pointer; margin-right: 15px;"
+            matTooltip="Collapse panel"
+          (click)="toggleSidePanel()">left_panel_close</span>
+        </div>
+      </div>
+    </div>
+    <div class="app-select-container">
+      <mat-select
+        class="app-select"
+        (selectionChange)="onAppSelection($event)"
+        [placeholder]="isLoadingApps() ? 'Loading...' : 'Select an agent'"
+        [formControl]="selectedAppControl">
+        @if ((apps$ | async); as availableApps) {
+          @for (appName of availableApps; track appName) {
+            <mat-option [value]="appName">{{ appName }}</mat-option>
+          }
+        }
+        @if (selectedAppControl.value && isLoadingApps()) {
+          <mat-option [value]="selectedAppControl.value">{{ selectedAppControl.value }}</mat-option>
+        }
+      </mat-select>
+    </div>
+    @if (appName != '' && showSidePanel) {
+      <div class="tabs-container">
+        <mat-tab-group (selectedTabChange)="handleTabChange($event)">
+          @if (traceTabEnabled) {
+            <mat-tab class="tabs-header">
+              <ng-template mat-tab-label>
+                <span class="tab-label">Trace</span>
+              </ng-template>
+              <app-trace-tab [traceData]="traceData"></app-trace-tab>
+            </mat-tab>
+          }
+          <mat-tab class="tabs-header">
+            <ng-template mat-tab-label>
+              <span class="tab-label">Events</span>
+            </ng-template>
+            <app-event-tab [eventsMap]="eventData" [traceData]="traceData" (selectedEvent)="selectEvent($event)"></app-event-tab>
+          </mat-tab>
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <span class="tab-label">State</span>
+            </ng-template>
+            <app-state-tab [sessionState]="currentSessionState"></app-state-tab>
+          </mat-tab>
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <span class="tab-label">Artifacts</span>
+            </ng-template>
+            <app-artifact-tab [artifacts]="artifacts">
+            </app-artifact-tab>
+          </mat-tab>
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <span class="tab-label">Sessions</span>
+            </ng-template>
+            <app-session-tab [userId]="userId" [appName]="appName" [sessionId]="sessionId"
+              (sessionSelected)="updateWithSelectedSession($event)" (sessionReloaded)="updateSessionState($event)">
+            </app-session-tab>
+          </mat-tab>
+          @if (shouldShowEvalTab()) {
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <span class="tab-label">Eval</span>
+              </ng-template>
+              <app-eval-tab [appName]="appName" [userId]="userId" [sessionId]="sessionId"
+                (shouldShowTab)="handleShouldShowEvalTab($event)"
+                (sessionSelected)="updateWithSelectedSession($event)"
+                (evalCaseSelected)="updateWithSelectedEvalCase($event)"
+                (evalSetIdSelected)="updateSelectedEvalSetId($event)"
+                (shouldReturnToSession)="handleReturnToSession($event)"></app-eval-tab>
+            </mat-tab>
+          }
+        </mat-tab-group>
+      </div>
+    }
+    @if (this.selectedEvent && showSidePanel) {
+      <div class="details-panel-container">
+        <div class="details-content">
+          <div style="display: flex;justify-content: flex-end; margin-top: 10px">
+            <mat-paginator
+              class="event-paginator"
+              [length]="eventData.size"
+              [pageSize]="1"
+              [pageIndex]="selectedEventIndex"
+              (page)="handlePageEvent($event)"
+              aria-label="Select event">
+            </mat-paginator>
+            <button mat-mini-fab>
+              <mat-icon (click)="closeSelectedEvent()">close</mat-icon>
+            </button>
+          </div>
+        </div>
+        <div>
+          <mat-tab-group>
+            <mat-tab label="Event">
+              <div class="event-graph-container">
+                @if (renderedEventGraph) {
+                  <div [innerHtml]="renderedEventGraph" (click)="openViewImageDialog(rawSvgString)"></div>
+                }
+              </div>
+              <div class="json-viewer-container">
+                <ngx-json-viewer [json]="selectedEvent"></ngx-json-viewer>
+              </div>
+            </mat-tab>
+            <mat-tab label="Request">
+              <div class="json-viewer-container">
+                <ngx-json-viewer [json]="llmRequest"></ngx-json-viewer>
+              </div>
+            </mat-tab>
+            <mat-tab label="Response">
+              <div class="json-viewer-container">
+                <ngx-json-viewer [json]="llmResponse"></ngx-json-viewer>
+              </div>
+            </mat-tab>
+          </mat-tab-group>
+        </div>
+      </div>
+    }
+    <div class="resize-handler"></div>
+  </mat-drawer>
+  <div class="chat-container">
+    @if (appName != '') {
+      <div class="chat-toolbar">
+        @if (evalCase) {
+          <div style="display: flex;">
+            <div class="toolbar-session-text">Eval Case ID</div>
+            <div class="toolbar-session-id">{{evalCase.evalId}}</div>
+          </div>
+          <div class="toolbar-actions">
+            <button
+                mat-button
+                (click)="cancelEditEvalCase()"
+                style="height: 30px;"
+                [hidden]="!hasEvalCaseChanged()">
+              Cancel
+            </button>
+            <button
+              mat-flat-button
+              (click)="saveEvalCase()"
+              style="height: 30px;"
+              [hidden]="!hasEvalCaseChanged()">
+              Save
+            </button>
+            <span class="material-symbols-outlined toolbar-icon"
+                matTooltip="Delete current eval case"
+                (click)="deleteEvalCase()">
+                delete
+              </span>
+          </div>
+        } @else {
+          <div style="display: flex;">
+            <div class="toolbar-session-text">Session ID</div>
+            <div class="toolbar-session-id">{{sessionId}}</div>
+          </div>
+          <div class="toolbar-actions">
+
+            <div style="display: flex; align-items:center">
+              <div (click)="onNewSessionClick()" class="toolbar-new-sesison">
+                <mat-icon>add</mat-icon>
+                New Session
+              </div>
+              <span class="material-symbols-outlined toolbar-icon"
+                matTooltip="Delete current session"
+                (click)="deleteSession(sessionId)">
+                delete
+              </span>
+              <span class="material-symbols-outlined toolbar-icon"
+                matTooltip="Export current session"
+                (click)="exportSession()" >
+                download
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+    <mat-card class="chat-card">
+      @if (!selectedAppControl.value) {
+        @if (isLoadingApps()) {
+          <div class="empty-state-container">
+            <span>Loading agents, please wait...</span>
+          </div>
+        } @else {
+          <div class="empty-state-container">
+            @if (((apps$ | async) || []).length > 0) {
+              <span>Welcome to ADK!<br> Select an agent on the left to begin with.</span>
+            } @else {
+              <div>
+                Failed to load agents. To get started, run <pre>adk web</pre> in the folder that contains the agents.<br>
+                @if (loadingError()) {
+                  Error message: <br>
+                  <pre class="error">{{ loadingError() }}</pre>
+                } @else {
+                  <pre class="warning">Warning: No agents found in current folder.</pre>
+                }
+              </div>
+            }
+          </div>
+        }
+      }
+      @if (longRunningEvents.length > 0) {
+        <button
+          mat-fab
+          color="primary"
+          class="fab-button"
+          (click)="openDialog()"
+          >
+          <mat-icon>priority_high</mat-icon>
+        </button>
+      }
+
+      @if (appName != '' && isChatMode()) {
+        <div class="scenario-interface" style="display: flex; flex-direction: column; align-items: center; padding: 20px; max-width: 800px; margin: 0 auto;">
+          
+          <!-- Scenario Dropdown -->
+          <div class="scenario-dropdown" style="margin-bottom: 30px;">
+            @if (!scenarioCompleted) {
+              <mat-form-field class="modern-input-field" appearance="outline">
+                <mat-label>Select a Scenario</mat-label>
+                <mat-select [(value)]="selectedDropdownOption" (selectionChange)="onDropdownChange($event)" [disabled]="isGenerating || isLoadingScenarios()" class="modern-select">
+                  @if ((scenarios$ | async); as availableScenarios) {
+                    @for (scenario of availableScenarios; track scenario.id) {
+                      <mat-option [value]="scenario.id" class="modern-option">{{ scenario.display_name }}</mat-option>
+                    }
+                  }
+                  @if (isLoadingScenarios()) {
+                    <mat-option disabled>Loading scenarios...</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            } @else {
+              <div class="completed-scenario">
+                Completed: {{(getScenarioDisplayName(selectedDropdownOption) | async) || selectedDropdownOption}}
+                <button mat-raised-button (click)="startNewSession()" class="new-session-btn">
+                  New Session
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Custom Input Section -->
+          @if (showCustomInput && !scenarioCompleted) {
+            <div class="custom-input-section">
+              <mat-form-field class="modern-input-field full-width" appearance="outline">
+                <mat-label>Enter your custom scenario</mat-label>
+                <textarea 
+                  matInput 
+                  [(ngModel)]="customInputText" 
+                  placeholder="Describe your scenario in detail..."
+                  rows="4"
+                  class="custom-textarea">
+                </textarea>
+              </mat-form-field>
+              
+              <div class="custom-controls">
+                <mat-checkbox 
+                  [(ngModel)]="customInputDone" 
+                  (change)="customInputDone ? onCustomInputDone() : null"
+                  [disabled]="!customInputText.trim()"
+                  class="done-checkbox">
+                  Done
+                </mat-checkbox>
+              </div>
+            </div>
+          }
+
+          <!-- Error Message -->
+          @if (scenarioError && !isGenerating && !scenarioCompleted) {
+            <div class="error-message-container">
+              <div class="error-message">
+                <mat-icon class="error-icon">error_outline</mat-icon>
+                <span>{{ scenarioErrorMessage }}</span>
+              </div>
+            </div>
+          }
+
+
+
+          <!-- Run button -->
+          @if (scenarioDataReady && !scenarioError && !isGenerating && !scenarioCompleted && (!showCustomInput || customInputDone)) {
+            <div class="run-button-container">
+              <button 
+                mat-raised-button 
+                color="primary" 
+                (click)="onRunScenario()"
+                class="run-scenario-btn">
+                <mat-icon>play_arrow</mat-icon>
+                Run Scenario
+              </button>
+            </div>
+          }
+
+          <!-- Loading State with Progress Tracking -->
+          @if (isGenerating) {
+            <div class="generating-container" style="margin-bottom: 30px;">
+              <div style="margin-bottom: 16px; color: white; text-align: center;">Generating scenario: {{(getScenarioDisplayName(selectedDropdownOption) | async) || selectedDropdownOption}}</div>
+              
+              <!-- Advanced Progress Component -->
+              <app-progress 
+                [sessionId]="sessionId"
+                [show]="isGenerating"
+                [debug]="false">
+              </app-progress>
+              
+              <!-- Fallback Simple Spinner (in case SSE is not available) -->
+              <div style="text-align: center; margin-top: 20px;" *ngIf="!sessionId">
+                <mat-spinner diameter="40"></mat-spinner>
+              </div>
+            </div>
+          }
+
+          <!-- Response Display -->
+          @if (scenarioResponse && !isGenerating) {
+            <div class="response-container" style="width: 100%; max-width: none; padding: 20px; max-height: 70vh; overflow-y: auto;">
+              
+              <!-- Details Toggle Control -->
+              @if (scenarioResponse.riskForecast) {
+                <div class="details-toggle" 
+                     style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; cursor: pointer; padding: 12px 0; border-bottom: 1px solid #333;"
+                     (click)="toggleRiskDetails()">
+                  <div style="width: 8px; height: 8px; border-radius: 50%;" [style.background-color]="getRiskLevelColor(scenarioResponse.riskForecast.riskLevel)"></div>
+                  <span style="color: #e8eaed; font-size: 16px; font-weight: 500;">
+                    {{showRiskDetails ? 'Hide Details' : 'See Details'}}
+                            </span>
+                  <div class="risk-badge" 
+                       style="padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;"
+                       [style.background-color]="getRiskLevelColor(scenarioResponse.riskForecast.riskLevel) + '20'"
+                       [style.color]="getRiskLevelColor(scenarioResponse.riskForecast.riskLevel)">
+                    {{scenarioResponse.riskForecast.riskLevel}} Risk
+                  </div>
+                  <mat-icon style="color: #9aa0a6; margin-left: auto; transition: transform 0.3s;" [style.transform]="showRiskDetails ? 'rotate(180deg)' : 'rotate(0deg)'">
+                    keyboard_arrow_down
+                  </mat-icon>
+                </div>
+              }
+
+              <!-- Verifier Toggle Control -->
+              @if (scenarioResponse.verifier) {
+                <div class="verifier-toggle" 
+                     style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; cursor: pointer; padding: 12px 0; border-bottom: 1px solid #333;"
+                     (click)="toggleVerifierDetails()">
+                  <mat-icon style="color: #8ab4f8; font-size: 18px; width: 18px; height: 18px;">verified</mat-icon>
+                  <span style="color: #e8eaed; font-size: 16px; font-weight: 500;">
+                    {{showVerifierDetails ? 'Hide Verification' : 'Verify'}}
+                  </span>
+                  @if (scenarioResponse.verifier.overallConfidence > 0) {
+                    <div class="confidence-badge" style="background-color: #8ab4f820; color: #8ab4f8; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;">
+                      {{(scenarioResponse.verifier.overallConfidence * 100).toFixed(0)}}% Confidence
+                    </div>
+                  }
+                  <mat-icon style="color: #9aa0a6; margin-left: auto; transition: transform 0.3s;" [style.transform]="showVerifierDetails ? 'rotate(180deg)' : 'rotate(0deg)'">
+                    keyboard_arrow_down
+                  </mat-icon>
+                </div>
+              }
+
+              <!-- Main Response Content -->
+              @if (!showRiskDetails && !showVerifierDetails) {
+                <div class="main-response" style="color: #e8eaed; font-size: 18px; line-height: 1.6; font-weight: 400;">
+                  <markdown [data]="scenarioResponse.finalText"></markdown>
+                  
+                  <!-- Confidence Level Display -->
+                  @if (scenarioResponse.riskForecast?.confidence > 0 || scenarioResponse.verifier?.overallConfidence > 0) {
+                    <div class="confidence-display" style="margin-top: 20px; padding: 16px; background-color: #131314; border-radius: 8px; border: 1px solid #333;">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="color: #9aa0a6; font-size: 14px;">
+                          @if (scenarioResponse.verifier?.overallConfidence > 0) {
+                            <span>Verified Confidence</span>
+                          } @else {
+                            <span>Confidence</span>
+                          }
+                        </div>
+                        <div style="color: #8ab4f8; font-size: 16px; font-weight: 600;">{{((scenarioResponse.verifier?.overallConfidence || scenarioResponse.riskForecast.confidence) * 100).toFixed(0)}}%</div>
+                            </div>
+                      <div style="width: 100%; height: 6px; background-color: #2a2a2a; border-radius: 3px;">
+                        <div style="height: 100%; background: linear-gradient(90deg, #ea4335 0%, #fbbc04 50%, #34a853 100%); border-radius: 3px; transition: width 0.5s ease;" 
+                             [style.width.%]="(scenarioResponse.verifier?.overallConfidence || scenarioResponse.riskForecast.confidence) * 100"></div>
+                              </div>
+                            </div>
+                          }
+                            </div>
+                          }
+
+              <!-- Verifier Details Content -->
+              @if (showVerifierDetails && scenarioResponse.verifier) {
+                <div class="verifier-details" style="animation: fadeIn 0.4s ease-out;">
+                  
+                  <!-- Verification Summary -->
+                  @if (scenarioResponse.verifier.summary) {
+                    <div class="section" style="margin-bottom: 24px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 12px;">Verification Summary</h3>
+                      <div style="color: #e8eaed; font-size: 16px; line-height: 1.6; padding-left: 16px; border-left: 3px solid #8ab4f8;">
+                        <markdown [data]="scenarioResponse.verifier.summary"></markdown>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Verification Feedback -->
+                  @if (scenarioResponse.verifier.feedback && scenarioResponse.verifier.feedback.length > 0) {
+                    <div class="section" style="margin-bottom: 24px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 16px;">Feedback & Recommendations</h3>
+                      @for (item of scenarioResponse.verifier.feedback; track $index) {
+                        <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+                          <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #8ab4f8; margin-top: 8px; margin-right: 16px; flex-shrink: 0;"></div>
+                          <div style="color: #e8eaed; font-size: 15px; line-height: 1.5;">
+                            <markdown [data]="item"></markdown>
+                        </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Text Verification Content (for non-JSON verifiers) -->
+                  @if (scenarioResponse.verifier.content && scenarioResponse.verifier.type === 'text_verification') {
+                    <div class="section" style="margin-bottom: 24px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 12px;">Verification Details</h3>
+                      <div style="color: #e8eaed; font-size: 16px; line-height: 1.6; padding-left: 16px; border-left: 3px solid #8ab4f8;">
+                        <markdown [data]="scenarioResponse.verifier.content"></markdown>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Detailed Response Content -->
+              @if (showRiskDetails && scenarioResponse.riskForecast) {
+                <div class="detailed-response" style="animation: fadeIn 0.4s ease-out;">
+                  
+                  <!-- Risk Overview -->
+                  <div class="section" style="margin-bottom: 32px;">
+                    <h2 style="color: #8ab4f8; font-size: 20px; font-weight: 600; margin-bottom: 16px; border-bottom: 2px solid #8ab4f8; padding-bottom: 8px;">Risk Overview</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                      <div>
+                        <div style="color: #9aa0a6; font-size: 14px; margin-bottom: 4px;">Risk Level</div>
+                        <div style="font-size: 16px; font-weight: 600;" [style.color]="getRiskLevelColor(scenarioResponse.riskForecast.riskLevel)">{{formatKey(scenarioResponse.riskForecast.riskLevel)}}</div>
+                      </div>
+                      <div>
+                        <div style="color: #9aa0a6; font-size: 14px; margin-bottom: 4px;">Primary Concern</div>
+                        <div style="color: #e8eaed; font-size: 16px; font-weight: 500;">{{formatKey(scenarioResponse.riskForecast.primaryConcern)}}</div>
+                      </div>
+                      <div>
+                        <div style="color: #9aa0a6; font-size: 14px; margin-bottom: 4px;">Time Horizon</div>
+                        <div style="color: #e8eaed; font-size: 16px; font-weight: 500;">{{scenarioResponse.riskForecast.timeHorizon}} hours</div>
+                      </div>
+                      <div>
+                        <div style="color: #9aa0a6; font-size: 14px; margin-bottom: 4px;">Confidence</div>
+                        <div style="color: #8ab4f8; font-size: 16px; font-weight: 600;">{{(scenarioResponse.riskForecast.confidence * 100).toFixed(0)}}%</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Summary -->
+                  @if (scenarioResponse.riskForecast.narrative) {
+                    <div class="section" style="margin-bottom: 32px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 12px;">Summary</h3>
+                      <div style="color: #e8eaed; font-size: 16px; line-height: 1.6; padding-left: 16px; border-left: 3px solid #8ab4f8;">
+                        <markdown [data]="scenarioResponse.riskForecast.narrative"></markdown>
+              </div>
+                </div>
+              }
+
+                  <!-- Contributing Factors -->
+                  @if (scenarioResponse.riskForecast.contributingFactors && scenarioResponse.riskForecast.contributingFactors.length > 0) {
+                    <div class="section" style="margin-bottom: 32px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 16px;">Contributing Factors</h3>
+                      @for (factor of scenarioResponse.riskForecast.contributingFactors; track $index) {
+                        <div class="factor-item" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #333;">
+                          <h4 style="color: #f1f3f4; font-size: 16px; font-weight: 600; margin-bottom: 8px;">{{formatKey(factor.type)}}</h4>
+                          <div style="color: #e8eaed; font-size: 15px; line-height: 1.5; margin-bottom: 8px;">
+                            <markdown [data]="factor.description"></markdown>
+                          </div>
+                          <div style="color: #9aa0a6; font-size: 14px; font-style: italic;">
+                            <strong>Impact:</strong> {{factor.impact}}
+                          </div>
+            </div>
+          }
+        </div>
+      }
+
+                  <!-- Recommended Focus Areas -->
+                  @if (scenarioResponse.riskForecast.focusAreas && scenarioResponse.riskForecast.focusAreas.length > 0) {
+                    <div class="section" style="margin-bottom: 32px;">
+                      <h3 style="color: #8ab4f8; font-size: 18px; font-weight: 600; margin-bottom: 16px;">Recommended Actions</h3>
+                      @for (area of scenarioResponse.riskForecast.focusAreas; track $index) {
+                        <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+                          <div style="width: 8px; height: 8px; border-radius: 50%; background-color: #8ab4f8; margin-top: 8px; margin-right: 16px; flex-shrink: 0;"></div>
+                          <div style="color: #e8eaed; font-size: 15px; line-height: 1.5;">
+                            <markdown [data]="area"></markdown>
+                          </div>
+                        </div>
+                      }
+                      </div>
+                    }
+
+                  <!-- Technical Details (Collapsible JSON) -->
+                  <div class="section">
+                    <div style="display: flex; align-items: center; cursor: pointer; margin-bottom: 12px;" (click)="toggleTechnicalDetails()">
+                      <h3 style="color: #9aa0a6; font-size: 16px; font-weight: 500; margin: 0;">Technical Details</h3>
+                      <mat-icon style="color: #9aa0a6; margin-left: 8px; transition: transform 0.3s;" [style.transform]="showTechnicalDetails ? 'rotate(180deg)' : 'rotate(0deg)'">
+                        keyboard_arrow_down
+                      </mat-icon>
+                    </div>
+                    @if (showTechnicalDetails) {
+                      <!-- Risk Forecast JSON -->
+                      <div style="margin-bottom: 16px;">
+                        <h4 style="color: #8ab4f8; font-size: 14px; margin-bottom: 8px;">Risk Forecast Data</h4>
+                        <div style="background-color: #1a1a1a; border-radius: 8px; padding: 16px; border: 1px solid #333; font-family: 'Courier New', monospace;">
+                          <pre style="color: #e8eaed; font-size: 12px; white-space: pre-wrap; margin: 0; line-height: 1.4;">{{formatTechnicalJson(scenarioResponse.riskForecast)}}</pre>
+                        </div>
+                      </div>
+                      
+                      <!-- Verifier Data -->
+                      @if (scenarioResponse.verifier) {
+                        <div style="margin-bottom: 16px;">
+                          <h4 style="color: #8ab4f8; font-size: 14px; margin-bottom: 8px;">Verification Data</h4>
+                          <div style="background-color: #1a1a1a; border-radius: 8px; padding: 16px; border: 1px solid #333; font-family: 'Courier New', monospace;">
+                            <pre style="color: #e8eaed; font-size: 12px; white-space: pre-wrap; margin: 0; line-height: 1.4;">{{formatTechnicalJson(scenarioResponse.verifier)}}</pre>
+                          </div>
+                        </div>
+                      }
+                      
+                      <!-- Debug Information -->
+                      @if (scenarioResponse.debugResponses) {
+                        <div>
+                          <h4 style="color: #9aa0a6; font-size: 14px; margin-bottom: 8px;">Debug Information</h4>
+                          <div style="background-color: #1a1a1a; border-radius: 8px; padding: 16px; border: 1px solid #333; font-family: 'Courier New', monospace;">
+                            <pre style="color: #9aa0a6; font-size: 11px; white-space: pre-wrap; margin: 0; line-height: 1.4;">{{formatTechnicalJson(scenarioResponse.debugResponses)}}</pre>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                  </div>
+                }
+
+              <!-- Google Search Grounding Content (Required by Policy) -->
+              @if (scenarioResponse && scenarioResponse.groundingContent && !isGenerating) {
+                <div class="grounding-content" style="margin-top: 24px; padding: 20px; background-color: #1a1a1a; border-radius: 12px; border-left: 4px solid #34a853;">
+                  <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                    <mat-icon style="color: #34a853; font-size: 20px; width: 20px; height: 20px; margin-right: 10px;">search</mat-icon>
+                    <h3 style="color: #34a853; font-size: 16px; font-weight: 600; margin: 0;">Search Suggestions</h3>
+                  </div>
+                  <div class="search-suggestions" style="color: #e8eaed; font-size: 14px; line-height: 1.6;" [innerHTML]="scenarioResponse.groundingContent"></div>
+              </div>
+            }
+            </div>
+          }
+        </div>
+      }
+    </mat-card>
+  </div>
+</mat-drawer-container>
