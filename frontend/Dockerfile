@@ -1,5 +1,5 @@
-# Use Node.js for serving (simpler approach)
-FROM node:18-alpine
+# Multi-stage build for production
+FROM node:18-alpine AS build
 
 # Set working directory
 WORKDIR /app
@@ -13,12 +13,20 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Expose port 8080 (Cloud Run default)
-EXPOSE 8080
+# Create runtime config with hardcoded backend (correct location and format)
+RUN mkdir -p src/assets/config && echo '{ "backendUrl": "https://t1d-swarm-993662266913.us-central1.run.app" }' > src/assets/config/runtime-config.json
 
-# Set the PORT environment variable for Cloud Run
+# Build for production
+RUN npm run build:prod
+
+# Production stage with nginx
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY --from=build /app/dist/agent_framework_web/browser/ /usr/share/nginx/html
+
+# Expose port 8080
+EXPOSE 8080
 ENV PORT=8080
 
-# Use the existing npm serve command with backend URL from environment
-# The serve script calls set-backend.js which reads from npm_config_backend
-CMD npm run serve --backend=$BACKEND_URL -- --host=0.0.0.0 --port=$PORT --disable-host-check
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
