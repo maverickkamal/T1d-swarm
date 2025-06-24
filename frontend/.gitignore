@@ -36,7 +36,6 @@ sse_*.md
 *_RUN_*.md
 
 # Environment and configuration files
-src/assets/config/runtime-config.json
 .env
 .env.local
 .env.production
