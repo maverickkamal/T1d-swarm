@@ -24,25 +24,30 @@
 - **Material Design Components** - Clean, modern UI components
 - **Reactive State Management** - RxJS-based reactive programming
 
-### Backend Integration
-- **SSE Endpoints** - Server-Sent Events for real-time progress updates
-- **REST API** - RESTful endpoints for scenario execution and data retrieval
-- **Agent System** - Multi-agent orchestration with progress tracking
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Node.js** (v18+ recommended)
-- **Angular CLI** (v17+)
-- **Compatible Backend** - Python/FastAPI or similar with SSE support
+## ✨ Prerequisite
+
+- **Install [Angular CLI](https://angular.dev/tools/cli)**
+
+- **Install [NodeJs](https://nodejs.org/en)**
+
+- **Install [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)**
+
+- **Install [google-adk (Python)](https://github.com/google/adk-python)** 
+
+- **Install [google-adk (Java)](https://github.com/google/adk-java/)** 
+
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd adk-web
+   git clone https://github.com/maverickkamal/T1d-swarm.git
+   cd frontend
    ```
 
 2. **Install dependencies**
@@ -51,16 +56,20 @@
    ```
 
 3. **Configure backend URL**
-   Update the backend URL in your environment files if needed:
-   ```typescript
-   // src/env/environment.ts
-   export const environment = {
-     production: false,
-     apiUrl: 'http://localhost:8080'
-   };
-   ```
 
-4. **Start the development server**
+```bash
+npm run serve --backend=http://localhost:8000
+```
+
+### Run adk api server
+
+In another terminal run:
+
+```bash
+adk api_server --allow_origins=http://localhost:4200 --host=0.0.0.0
+```
+
+### Access after first start
    ```bash
    npm start
    # or
@@ -80,136 +89,7 @@
 4. **Monitor Progress** - Watch real-time progress with detailed agent status
 5. **Review Results** - Analyze risk forecasts, verification results, and insights
 
-### Progress Tracking Features
 
-The built-in progress tracking system provides:
-
-- **Overall Progress Bar** - Shows completion percentage across all agents
-- **Agent Hierarchy** - Visualizes nested agent relationships
-- **Real-time Updates** - Live status changes via Server-Sent Events
-- **Connection Status** - Visual indicators for SSE connection health
-- **Auto-completion** - Automatic cleanup when analysis completes
-
-## 🛠️ Development
-
-### Project Structure
-
-```
-src/
-├── app/
-│   ├── components/
-│   │   ├── chat/              # Main chat/scenario interface
-│   │   ├── progress/          # Real-time progress tracking
-│   │   ├── artifact-tab/      # Results and artifacts
-│   │   └── ...
-│   ├── core/
-│   │   ├── models/            # TypeScript interfaces
-│   │   └── services/          # Angular services
-│   └── assets/                # Static assets
-```
-
-### Key Components
-
-- **`ChatComponent`** - Main interface for scenario selection and execution
-- **`ProgressComponent`** - Real-time progress tracking with SSE integration
-- **`ProgressService`** - Service handling SSE connections and state management
-- **Agent Services** - Backend communication for scenario execution
-
-### Build Commands
-
-```bash
-# Development server
-npm start
-
-# Production build
-npm run build
-
-# Run tests
-npm test
-
-# Run linting
-npm run lint
-```
-
-## 🔧 Configuration
-
-### Backend Integration
-
-Ensure your backend provides these endpoints:
-
-- **`POST /get-scenario/`** - Execute T1D scenarios
-  ```json
-  {
-    "scenario_id": "string",
-    "session_id": "string", 
-    "custom_text": "string (optional)"
-  }
-  ```
-
-- **`GET /progress/{session_id}`** - SSE endpoint for progress tracking
-  ```json
-  {
-    "session_id": "string",
-    "agent_name": "string",
-    "event_type": "agent_start|agent_complete|agent_error",
-    "timestamp": "ISO string",
-    "parent_agent": "string (optional)"
-  }
-  ```
-
-### Environment Configuration
-
-Create environment files for different deployment stages:
-
-```typescript
-// src/env/environment.prod.ts
-export const environment = {
-  production: true,
-  apiUrl: 'https://your-production-api.com'
-};
-```
-
-## 🎨 Customization
-
-### Theming
-
-The application uses Angular Material with custom theming. Colors are defined in:
-- `_theme-colors.scss` - Main theme variables
-- `src/styles.scss` - Global styles
-
-### Agent Display Names
-
-Customize agent display names in the progress service:
-
-```typescript
-// src/app/core/services/progress.service.ts
-const displayNames = {
-  'T1dInsightOrchestratorAgent': '🎯 T1D Insight Orchestrator',
-  'GlycemicRiskForecasterAgent': '📈 Glycemic Risk Forecaster',
-  // Add your custom agent names
-};
-```
-
-## 📊 Progress Tracking Integration
-
-For detailed integration instructions, see [`sse_integration.md`](sse_integration.md) which includes:
-
-- Complete setup guide
-- Backend integration requirements  
-- Customization options
-- Troubleshooting tips
-
-## 🧪 Testing
-
-### Unit Tests
-```bash
-npm test
-```
-
-### E2E Tests
-```bash
-npm run e2e
-```
 
 ### Debug Mode
 Enable debug mode for progress tracking:
@@ -224,20 +104,7 @@ Enable debug mode for progress tracking:
 npm run build --prod
 ```
 
-### Docker Deployment
-```dockerfile
-FROM node:18-alpine as build
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build --prod
 
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
 
 ## 🤝 Contributing
 
@@ -256,14 +123,10 @@ We welcome contributions! Please read our contributing guidelines:
 - Use semantic commit messages
 - Update documentation as needed
 
-## 📄 License
-
-This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
 - **Issues** - Report bugs and request features via GitHub Issues
-- **Documentation** - See [`sse_integration.md`](sse_integration.md) for detailed integration guide
 - **Development** - Check the source code for implementation examples
 
 ---
