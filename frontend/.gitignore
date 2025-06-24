@@ -33,6 +33,7 @@ e2e/*.map
 *_TEST_*.md
 test-*-*.html
 sse_*.md
+*_RUN_*.md
 
 # Environment and configuration files
 src/assets/config/runtime-config.json
