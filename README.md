@@ -174,7 +174,7 @@ Before setting up Glycemic Sentinel, ensure you have:
 
 ```bash
 git clone https://github.com/maverickkamal/T1d-swarm.git
-cd T1d-swarm
+cd backend
 ```
 
 ### 2. Create Conda Environment
